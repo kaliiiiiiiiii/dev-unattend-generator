@@ -58,7 +58,7 @@ jobs:
           # Normalize to forward slashes for GitHub Actions
           $newExePathForward = $newExePath -replace '\\','/'
 
-          $xmlPath = Join-Path $exeDir "out/autounattend.xml"
+          $xmlPath = "out/autounattend.xml"
           $xmlPathForward = $xmlPath -replace '\\','/'
 
           if (-not (Test-Path $xmlPath)) {
