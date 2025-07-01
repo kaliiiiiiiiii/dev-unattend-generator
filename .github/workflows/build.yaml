@@ -17,37 +17,60 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET SDK
+        id: setup-dotnet
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+
+      - name: Extract major.minor version for framework path
+        id: extract-version
+        run: |
+          $version = '${{ steps.setup-dotnet.outputs.dotnet-version }}'
+          $parts = $version -split '\.'
+          $majorMinor = "$($parts[0]).$($parts[1])"
+          $tfm = "net$majorMinor"
+          echo "tfm=$tfm" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
 
       - name: Build Generator.exe (Release)
         working-directory: ./Generator
         run: dotnet build -c Release
 
       - name: Run Generator.exe to generate XML
-        run: ./Generator/bin/Release/net9.0/Generate.exe
+        run: ./Generator/bin/Release/${{ steps.extract-version.outputs.tfm }}/Generate.exe
         shell: pwsh
 
       - name: Rename executable and prepare paths
         id: tagrename
         run: |
           $tag = '${{ github.event.release.tag_name }}'
-          $exePath = "Generator/bin/Release/net9.0/Generate.exe"
+          $tfm = '${{ steps.extract-version.outputs.tfm }}'
+
+          $exePath = "Generator/bin/Release/$tfm/Generate.exe"
           $exeDir = Split-Path $exePath
           $exeName = [System.IO.Path]::GetFileNameWithoutExtension($exePath)
           $newExeName = "$exeName-$tag.exe"
           $newExePath = Join-Path $exeDir $newExeName
+
           Rename-Item -Path $exePath -NewName $newExeName
 
-          $xmlPath = Join-Path $exeDir "out/autounattend.xml"
+          # Normalize to forward slashes for GitHub Actions
+          $newExePathForward = $newExePath -replace '\\','/'
 
-          echo "exePath=$newExePath" >> $env:GITHUB_OUTPUT
-          echo "xmlPath=$xmlPath" >> $env:GITHUB_OUTPUT
+          $xmlPath = Join-Path $exeDir "out/autounattend.xml"
+          $xmlPathForward = $xmlPath -replace '\\','/'
+
+          if (-not (Test-Path $xmlPath)) {
+            Write-Warning "XML file does not exist at $xmlPath"
+          }
+
+          echo "exePath=$newExePathForward" >> $env:GITHUB_OUTPUT
+          echo "xmlPath=$xmlPathForward" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
       - name: List generated files
-        run: Get-ChildItem -Recurse Generator\bin\Release\net9.0
+        run: Get-ChildItem -Recurse Generator\bin\Release\${{ steps.extract-version.outputs.tfm }}
         shell: pwsh
 
       - name: Upload EXE and XML to release
