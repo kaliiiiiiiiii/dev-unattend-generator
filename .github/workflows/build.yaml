@@ -23,7 +23,7 @@ jobs:
 
       - name: Build Generator.exe (Release)
         working-directory: ./Generator
-        run: dotnet build
+        run: dotnet build -c Release
 
       - name: Run Generator.exe to generate XML
         run: ./Generator/bin/Release/net9.0/Generate.exe
