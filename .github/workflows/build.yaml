@@ -23,7 +23,7 @@ jobs:
 
       - name: Build Generator.exe (Release)
         working-directory: ./Generator
-        run: dotnet build -c Release
+        run: dotnet build
 
       - name: Run Generator.exe to generate XML
         run: ./Generator/bin/Release/net9.0/Generate.exe
@@ -44,6 +44,10 @@ jobs:
 
           echo "exePath=$newExePath" >> $env:GITHUB_OUTPUT
           echo "xmlPath=$xmlPath" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: List generated files
+        run: Get-ChildItem -Recurse Generator\bin\Release\net9.0
         shell: pwsh
 
       - name: Upload EXE and XML to release
