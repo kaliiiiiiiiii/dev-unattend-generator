@@ -1,0 +1,54 @@
+name: Build and Release Generator
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Build Generator.exe (Release)
+        working-directory: ./Generator
+        run: dotnet build -c Release
+
+      - name: Run Generator.exe to generate XML
+        run: ./Generator/bin/Release/net9.0/Generate.exe
+        shell: pwsh
+
+      - name: Rename executable and prepare paths
+        id: tagrename
+        run: |
+          $tag = '${{ github.event.release.tag_name }}'
+          $exePath = "Generator/bin/Release/net9.0/Generate.exe"
+          $exeDir = Split-Path $exePath
+          $exeName = [System.IO.Path]::GetFileNameWithoutExtension($exePath)
+          $newExeName = "$exeName-$tag.exe"
+          $newExePath = Join-Path $exeDir $newExeName
+          Rename-Item -Path $exePath -NewName $newExeName
+
+          $xmlPath = Join-Path $exeDir "out/autounattend.xml"
+
+          echo "exePath=$newExePath" >> $env:GITHUB_OUTPUT
+          echo "xmlPath=$xmlPath" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Upload EXE and XML to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ steps.tagrename.outputs.exePath }}
+            ${{ steps.tagrename.outputs.xmlPath }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
