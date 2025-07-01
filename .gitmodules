@@ -1,0 +1,3 @@
+[submodule "unattend-generator"]
+	path = unattend-generator
+	url = https://github.com/kaliiiiiiiiii/unattend-generator
