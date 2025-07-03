@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Xml;
-using System.IO;
 using System.Drawing;
+using DiscUtils.Iso9660;
 
 namespace Schneegans.Unattend;
 
-class Example
+class Generate
 {
-  public static void Main(string[] args)
-  {
+  public static void Main(string[] args){
     UnattendGenerator generator = new();
 
     // checkout https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/Main.cs
@@ -55,5 +53,19 @@ class Example
     }
     string path = Path.Combine(outputDir, "autounattend.xml");
     File.WriteAllBytes(path, UnattendGenerator.Serialize(xml));
+    string isoPath = Path.Combine(outputDir, "devwin.iso");
+
+    using (FileStream isoStream = File.Create(isoPath)) {
+        CDBuilder builder = new CDBuilder
+        {
+            UseJoliet = true,
+            VolumeIdentifier = "DEVWIN"
+        };
+
+        // Add autounattend.xml to the root of the ISO
+        builder.AddFile("autounattend.xml", path);
+
+        builder.Build(isoStream);
+    }
   }
 }

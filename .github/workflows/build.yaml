@@ -32,7 +32,6 @@ jobs:
           echo "tfm=$tfm" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
-
       - name: Build Generator.exe (Release)
         working-directory: ./Generator
         run: dotnet build -c Release
@@ -58,19 +57,7 @@ jobs:
           # Normalize to forward slashes for GitHub Actions
           $newExePathForward = $newExePath -replace '\\','/'
 
-          $xmlPath = "out/autounattend.xml"
-          $xmlPathForward = $xmlPath -replace '\\','/'
-
-          if (-not (Test-Path $xmlPath)) {
-            Write-Warning "XML file does not exist at $xmlPath"
-          }
-
           echo "exePath=$newExePathForward" >> $env:GITHUB_OUTPUT
-          echo "xmlPath=$xmlPathForward" >> $env:GITHUB_OUTPUT
-        shell: pwsh
-
-      - name: List generated files
-        run: Get-ChildItem -Recurse Generator\bin\Release\${{ steps.extract-version.outputs.tfm }}
         shell: pwsh
 
       - name: Upload EXE and XML to release
@@ -78,6 +65,7 @@ jobs:
         with:
           files: |
             ${{ steps.tagrename.outputs.exePath }}
-            ${{ steps.tagrename.outputs.xmlPath }}
+            out/autounattend.xml
+            out/devwin.iso
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
