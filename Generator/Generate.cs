@@ -30,7 +30,7 @@ class Generate
         return Configuration.Default with
         {
             BypassRequirementsCheck = true,
-            BypassNetworkCheck = false, // installation fails if this is true (https://github.com/kaliiiiiiiiii/unattend-generator/issues/2)
+            BypassNetworkCheck = true, // installation fails if this is true (https://github.com/kaliiiiiiiiii/unattend-generator/issues/2)
         };
     }
 
