@@ -52,6 +52,12 @@ class Generate
             InstallFromSettings = new AutomaticInstallFromSettings(),
             DiskAssertionSettings = new SkipDiskAssertionSettings(),
 
+             /* {
+                "Id": "pro",
+                "DisplayName": "Pro",
+                "ProductKey": "VK7JG-NPHTM-C97JM-9MPGT-3V66T",
+                "Visible": true
+            }, */
             // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/WindowsEdition.json
             EditionSettings = new CustomEditionSettings(productKey: "VK7JG-NPHTM-C97JM-9MPGT-3V66T"),
 
@@ -99,7 +105,7 @@ class Generate
             AccentColor: Color.FromArgb(0, 120, 215)
             ),
             BypassRequirementsCheck = true,
-            BypassNetworkCheck = false, // installation fails if this is true (https://github.com/kaliiiiiiiiii/unattend-generator/issues/2)
+            BypassNetworkCheck = true, // installation fails if this is true (https://github.com/kaliiiiiiiiii/unattend-generator/issues/2)
             EnableLongPaths = true,
             EnableRemoteDesktop = false,
             HardenSystemDriveAcl = true,
