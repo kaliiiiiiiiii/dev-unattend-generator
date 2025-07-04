@@ -99,7 +99,7 @@ class Generate
             AccentColor: Color.FromArgb(0, 120, 215)
             ),
             BypassRequirementsCheck = true,
-            BypassNetworkCheck = true,
+            BypassNetworkCheck = false, // installation fails if this is true (https://github.com/kaliiiiiiiiii/unattend-generator/issues/2)
             EnableLongPaths = true,
             EnableRemoteDesktop = false,
             HardenSystemDriveAcl = true,

@@ -6,6 +6,11 @@ A for development and privacy optimized unattend generator
 ## Installing
 See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/windows/unattend-generator/usage/)
 
+## TODO's
+- fix https://github.com/kaliiiiiiiiii/unattend-generator/issues/2
+- leftover 2x (instead of 1x) `desktop.ini`
+- identify potential BSOD
+
 ## Developing
 The configuration can be changed in [Generator/Generate.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/blob/v0.0.0.0.4/Generator/Generate.cs#L30-L133)
 
