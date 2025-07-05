@@ -18,6 +18,10 @@ See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/wind
 ## Developing
 The configuration can be changed in [Generator/Generate.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/blob/v0.0.0.0.4/Generator/Generate.cs#L30-L133)
 
+> [!Note]  
+> The language must match the ISO's language. Otherwise, windows will default to the ISO's language.
+
+
 #### Building
 Building the executable
 ```bash
