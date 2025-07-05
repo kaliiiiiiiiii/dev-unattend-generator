@@ -2,6 +2,7 @@
 using System.Xml;
 using System.Drawing;
 using DiscUtils.Iso9660;
+using System.Reflection.Metadata;
 
 namespace Schneegans.Unattend;
 
@@ -28,8 +29,16 @@ class Generate
     }
 
     static Configuration GenerateSettings(UnattendGenerator generator){
+
+        // read config files
         string taskBarIcons = File.ReadAllText("config/TaskbarIcons.xml");
         string startPins = File.ReadAllText("config/StartPins.json");
+
+        // read scripts
+        string SystemScript = File.ReadAllText("config/System.ps1");
+        string FirstLogonScript = File.ReadAllText("config/FirstLogon.ps1");
+        string UserOnceScript = File.ReadAllText("config/UserOnce.ps1");
+        string DefaultUserScript = File.ReadAllText("config/DefaultUser.ps1");
 
         // checkout https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/Main.cs
         return Configuration.Default with
@@ -96,7 +105,15 @@ class Generate
             ExpressSettings = ExpressSettingsMode.DisableAll,
 
             // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/modifier/Script.cs#L68-L101
-            ScriptSettings = new ScriptSettings(Scripts: [], RestartExplorer: false),
+            ScriptSettings = new ScriptSettings(Scripts:
+                [
+                    new(SystemScript, ScriptPhase.System, ScriptType.Ps1),
+                    new(FirstLogonScript, ScriptPhase.FirstLogon, ScriptType.Ps1),
+                    new(UserOnceScript, ScriptPhase.UserOnce, ScriptType.Ps1),
+                    new(DefaultUserScript, ScriptPhase.DefaultUser, ScriptType.Ps1),
+                ]
+            , RestartExplorer: false),
+
             KeySettings = new SkipKeySettings(),
             WallpaperSettings = new SolidWallpaperSettings(Color.Black),
             ColorSettings = new CustomColorSettings(
