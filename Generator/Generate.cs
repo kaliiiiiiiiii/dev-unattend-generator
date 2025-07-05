@@ -99,6 +99,17 @@ class Generate
             [
                 generator.Lookup<Bloatware>("RemoveCopilot"),
                 generator.Lookup<Bloatware>("RemoveOneDrive"),
+                generator.Lookup<Bloatware>("Skype"),
+                generator.Lookup<Bloatware>("Xbox Apps"),
+                generator.Lookup<Bloatware>("News"),
+                generator.Lookup<Bloatware>("Weather"),
+                generator.Lookup<Bloatware>("To DO"),
+                generator.Lookup<Bloatware>("Solitaire Collection"),
+                generator.Lookup<Bloatware>("Maps"),
+                generator.Lookup<Bloatware>("Office 365"),
+                generator.Lookup<Bloatware>("Family"),
+                generator.Lookup<Bloatware>("Dev Home"),
+                generator.Lookup<Bloatware>("Bing Search")
             ]
             ),
 
