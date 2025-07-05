@@ -23,7 +23,7 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Build Generator.exe (Release)
-        run: build.bat
+        run: .\\build.bat
 
       - name: Run Generator.exe to generate XML
         run: ./out/bin/Generate.exe
