@@ -52,7 +52,7 @@ class Generate
                 generator.Lookup<UserLocale>("en-US"),
 
                 // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/KeyboardIdentifier.json
-                generator.Lookup<KeyboardIdentifier>("d0010409") // 
+                generator.Lookup<KeyboardIdentifier>("00060409") // 
             ),
             LocaleAndKeyboard2: null,
             LocaleAndKeyboard3: null,
