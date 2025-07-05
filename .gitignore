@@ -1,6 +1,7 @@
 generator/bin
 generator/obj
 out
+config
 
 # vscode
 dev-unattend-generator.sln

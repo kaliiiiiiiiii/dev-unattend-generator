@@ -3,13 +3,17 @@ A for development and privacy optimized unattend generator
 ## Download
 `autounattend.xml` or packed into`devwin.iso` file from the [latest release](https://github.com/kaliiiiiiiiii/dev-unattend-generator/releases/latest)
 
+## Configuration files
+see [docs/config.md](docs/config.md)
+
 ## Installing
+> [!WARNING]  
+> This project mainly targets Windows 11+ and might not work on previous versions as expected.
+
 See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/windows/unattend-generator/usage/)
 
 ## TODO's
-- fix https://github.com/kaliiiiiiiiii/unattend-generator/issues/2
 - leftover 2x (instead of 1x) `desktop.ini`
-- identify potential BSOD
 
 ## Developing
 The configuration can be changed in [Generator/Generate.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/blob/v0.0.0.0.4/Generator/Generate.cs#L30-L133)

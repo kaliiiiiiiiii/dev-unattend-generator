@@ -22,42 +22,16 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Extract major.minor version for framework path
-        id: extract-version
-        run: |
-          $version = '${{ steps.setup-dotnet.outputs.dotnet-version }}'
-          $parts = $version -split '\.'
-          $majorMinor = "$($parts[0]).$($parts[1])"
-          $tfm = "net$majorMinor"
-          echo "tfm=$tfm" >> $env:GITHUB_OUTPUT
-        shell: pwsh
-
       - name: Build Generator.exe (Release)
-        working-directory: ./Generator
-        run: dotnet build -c Release
+        run: build.bat
 
       - name: Run Generator.exe to generate XML
-        run: ./Generator/bin/Release/${{ steps.extract-version.outputs.tfm }}/Generate.exe
+        run: ./out/bin/Generate.exe
         shell: pwsh
 
-      - name: Rename executable and prepare paths
+      - name: Create zip
         id: tagrename
-        run: |
-          $tag = '${{ github.event.release.tag_name }}'
-          $tfm = '${{ steps.extract-version.outputs.tfm }}'
-
-          $exePath = "Generator/bin/Release/$tfm/Generate.exe"
-          $exeDir = Split-Path $exePath
-          $exeName = [System.IO.Path]::GetFileNameWithoutExtension($exePath)
-          $newExeName = "$exeName-$tag.exe"
-          $newExePath = Join-Path $exeDir $newExeName
-
-          Rename-Item -Path $exePath -NewName $newExeName
-
-          # Normalize to forward slashes for GitHub Actions
-          $newExePathForward = $newExePath -replace '\\','/'
-
-          echo "exePath=$newExePathForward" >> $env:GITHUB_OUTPUT
+        run: Compress-Archive -Path "./out/bin" -DestinationPath "./out/devWinGen-${{ github.event.release.tag_name }}.zip"
         shell: pwsh
       
       - name: Determine release flags
@@ -76,7 +50,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ steps.tagrename.outputs.exePath }}
+            out/devWinGen-${{ github.event.release.tag_name }}.zip
             out/autounattend.xml
             out/devwin.iso
           draft: ${{ steps.release-flags.outputs.draft }}

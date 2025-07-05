@@ -28,6 +28,9 @@ class Generate
     }
 
     static Configuration GenerateSettings(UnattendGenerator generator){
+        string taskBarIcons = File.ReadAllText("config/TaskbarIcons.xml");
+        string startPins = File.ReadAllText("config/StartPins.json");
+
         // checkout https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/Main.cs
         return Configuration.Default with
         {
@@ -40,7 +43,7 @@ class Generate
                 generator.Lookup<UserLocale>("en-US"),
 
                 // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/KeyboardIdentifier.json
-                generator.Lookup<KeyboardIdentifier>("00060409") // colemak
+                generator.Lookup<KeyboardIdentifier>("d0010409") // 
             ),
             LocaleAndKeyboard2: null,
             LocaleAndKeyboard3: null,
@@ -52,12 +55,12 @@ class Generate
             InstallFromSettings = new AutomaticInstallFromSettings(),
             DiskAssertionSettings = new SkipDiskAssertionSettings(),
 
-             /* {
-                "Id": "pro",
-                "DisplayName": "Pro",
-                "ProductKey": "VK7JG-NPHTM-C97JM-9MPGT-3V66T",
-                "Visible": true
-            }, */
+            /* {
+               "Id": "pro",
+               "DisplayName": "Pro",
+               "ProductKey": "VK7JG-NPHTM-C97JM-9MPGT-3V66T",
+               "Visible": true
+           }, */
             // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/WindowsEdition.json
             EditionSettings = new CustomEditionSettings(productKey: "VK7JG-NPHTM-C97JM-9MPGT-3V66T"),
 
@@ -144,36 +147,12 @@ class Generate
             ShowEndTask = true,
             TaskbarSearch = TaskbarSearchMode.Hide,
 
-            StartPinsSettings = new CustomStartPinsSettings(
-            // win 11 json for StartPinSettings
-            // https://learn.microsoft.com/en-us/windows/configuration/start/layout?tabs=intune-10%2Cintune-11&pivots=windows-11#start-layout-example
-            // https://learn.microsoft.com/en-us/powershell/module/startlayout/export-startlayout format
-            Json: "{\"pinnedList\":[{\"desktopAppLink\":\"%APPDATA%\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\File Explorer.lnk\"}]}"
-            ),
+            StartPinsSettings = new CustomStartPinsSettings(Json: startPins),
             StartTilesSettings = new EmptyStartTilesSettings(), // win10 xml for StartPinsSettings
 
             StickyKeysSettings = new DisabledStickyKeysSettings(),
             CompactOsMode = CompactOsModes.Default,
-
-            // https://learn.microsoft.com/en-us/windows/configuration/taskbar/pinned-apps?tabs=intune&pivots=windows-11
-            // https://learn.microsoft.com/en-us/windows/configuration/taskbar/xsd
-            TaskbarIcons = new CustomTaskbarIcons(
-            Xml: @"<?xml version=""1.0"" encoding=""utf-8""?>
-    <LayoutModificationTemplate
-        xmlns=""http://schemas.microsoft.com/Start/2014/LayoutModification""
-        xmlns:defaultlayout=""http://schemas.microsoft.com/Start/2014/FullDefaultLayout""
-        xmlns:start=""http://schemas.microsoft.com/Start/2014/StartLayout""
-        xmlns:taskbar=""http://schemas.microsoft.com/Start/2014/TaskbarLayout""
-        Version=""1"">
-    <CustomTaskbarLayoutCollection PinListPlacement=""Replace"">
-        <defaultlayout:TaskbarLayout>
-        <taskbar:TaskbarPinList>
-            <taskbar:DesktopApp DesktopApplicationID=""Microsoft.Windows.Explorer""/>
-        </taskbar:TaskbarPinList>
-        </defaultlayout:TaskbarLayout>
-    </CustomTaskbarLayoutCollection>
-    </LayoutModificationTemplate>"
-            ),
+            TaskbarIcons = new CustomTaskbarIcons(Xml: taskBarIcons),
             Effects = new DefaultEffects(),
             // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/DesktopIcon.json
             DesktopIcons = new DefaultDesktopIconSettings(),

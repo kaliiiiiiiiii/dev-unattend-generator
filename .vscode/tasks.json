@@ -4,37 +4,20 @@
     {
       "label": "build Generator.exe",
       "type": "shell",
-      "command": "dotnet",
-      "args": ["build", "-c", "${input:buildConfiguration}"],
-      "options": {
-        "cwd": "${workspaceFolder}/Generator"
-      },
+      "command": ".\\build.bat",
       "group": {
         "kind": "build",
         "isDefault": true
       },
-      "problemMatcher": "$msCompile"
     },
     {
-    "label": "run Generator.exe",
-    "type": "shell",
-    "command": "${workspaceFolder}\\Generator\\bin\\Release\\net9.0\\Generate.exe",
-    "options": {
-      "cwd": "${workspaceFolder}"
-    },
-    "group": {
-      "kind": "test",
-      "isDefault": false
+      "label": "run Generator.exe",
+      "type": "shell",
+      "command": "${workspaceFolder}/out/bin/Generate.exe",
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      }
     }
-  }
   ],
-  "inputs": [
-    {
-      "id": "buildConfiguration",
-      "type": "pickString",
-      "description": "Select build configuration",
-      "options": ["Debug", "Release"],
-      "default": "Release"
-    }
-  ]
 }
