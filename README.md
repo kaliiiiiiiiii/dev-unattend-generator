@@ -33,7 +33,7 @@ Running the executable
 ```bash
 out/bin/Generate.exe --iso=./Win11_24H2_English_x64.iso
 ```
-The files will be packed into an empty iso file if `--iso=` is not provided.
+The files will be packed into an empty iso file if `--iso=` is not provided. This requires the [Windows ADK](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install) to be installed.
 
 # References
 - [cschneegans/unattend-generator](https://github.com/cschneegans/unattend-generator) the original generator

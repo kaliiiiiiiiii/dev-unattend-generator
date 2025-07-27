@@ -4,8 +4,13 @@
 			"path": "."
 		}
 	],
-	"settings": {},
+	"settings": {
+		"omnisharp.enableEditorConfigSupport": true
+	},
 	"extensions": {
-		"recommendations": ["ms-dotnettools.csdevkit", "ms-vscode.powershell"]
+		"recommendations": [
+			"ms-dotnettools.csdevkit",
+			"ms-vscode.powershell"
+		]
 	}
 }

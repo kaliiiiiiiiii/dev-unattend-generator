@@ -1,0 +1,32 @@
+# http://EditorConfig.org
+
+# This file is the top-most EditorConfig file
+root = true
+
+# All Files
+[*]
+charset = utf-8
+end_of_line = crlf
+indent_style = tab
+indent_size = 4
+insert_final_newline = false
+trim_trailing_whitespace = true
+
+# Dotnet Code Style Settings
+# See https://docs.microsoft.com/en-us/visualstudio/ide/editorconfig-code-style-settings-reference
+# See http://kent-boogaart.com/blog/editorconfig-reference-for-c-developers
+[*.{cs,csx,cake,vb}]
+
+
+# New Line Options
+# BUG: Warning level cannot be set https://github.com/dotnet/roslyn/issues/18010
+# https://docs.microsoft.com/en-us/visualstudio/ide/editorconfig-code-style-settings-reference#newline_before_else
+# none, accessors, types, methods, properties, indexers, events, anonymous_methods, control_blocks, anonymous_types, object_collection_array_initalizers, lambdas, local_functions
+# csharp_new_line_before_open_brace = all
+
+csharp_new_line_before_open_brace = none
+csharp_new_line_before_catch = false
+csharp_new_line_before_else = false
+csharp_new_line_before_finally = false
+csharp_new_line_before_members_in_anonymous_types = false
+csharp_new_line_before_members_in_object_initializers = false

@@ -5,7 +5,7 @@ using Schneegans.Unattend;
 
 namespace Generate;
 
-abstract class BaseGenerator{
+abstract class BaseGenerator {
     protected string TaskbarIconsXml { get; private set; } = "";
     protected string StartPinsJson { get; private set; } = "";
     protected string SystemScript { get; private set; } = "";
@@ -13,7 +13,7 @@ abstract class BaseGenerator{
     protected string UserOnceScript { get; private set; } = "";
     protected string DefaultUserScript { get; private set; } = "";
 
-    public void Run(string? iso){
+    public void Run(string? iso) {
         LoadConfigFiles();
 
         var outputDir = EnsureOutputDirectory();
@@ -24,18 +24,17 @@ abstract class BaseGenerator{
 
         string outISO = "out/devwin.iso";
         if (File.Exists(outISO)) { File.Delete(outISO); }
-        if (iso != null){
+        if (iso != null) {
             using var packer = new IsoPacker(iso);
             WriteXmlFile(xml, packer.TmpExtractPath);
             packer.RepackTo(outISO);
 
-        }
-        else{
+        } else {
             CreateIso(outputDir, xmlPath);
         }
     }
 
-    private void LoadConfigFiles(){
+    private void LoadConfigFiles() {
         TaskbarIconsXml = File.ReadAllText("config/TaskbarIcons.xml");
         StartPinsJson = File.ReadAllText("config/StartPins.json");
         SystemScript = File.ReadAllText("config/System.ps1");
@@ -44,25 +43,25 @@ abstract class BaseGenerator{
         DefaultUserScript = File.ReadAllText("config/DefaultUser.ps1");
     }
 
-    protected static string EnsureOutputDirectory(){
+    protected static string EnsureOutputDirectory() {
         string outputDir = Path.Combine(Environment.CurrentDirectory, "out");
-        if (!Directory.Exists(outputDir)){
+        if (!Directory.Exists(outputDir)) {
             Directory.CreateDirectory(outputDir);
         }
         return outputDir;
     }
 
-    protected static string WriteXmlFile(XmlDocument xml, string outputDir){
+    protected static string WriteXmlFile(XmlDocument xml, string outputDir) {
         string path = Path.Combine(outputDir, "autounattend.xml");
         File.WriteAllBytes(path, UnattendGenerator.Serialize(xml));
         return path;
     }
 
-    protected static void CreateIso(string outputDir, string xmlPath){
+    protected static void CreateIso(string outputDir, string xmlPath) {
         string isoPath = Path.Combine(outputDir, "devwin.iso");
 
         using FileStream isoStream = File.Create(isoPath);
-        CDBuilder builder = new(){
+        CDBuilder builder = new() {
             UseJoliet = true,
             VolumeIdentifier = "DEVWIN"
         };

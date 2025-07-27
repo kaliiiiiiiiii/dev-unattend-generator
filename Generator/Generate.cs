@@ -1,26 +1,25 @@
 ﻿using System.Collections.Immutable;
 using System.Drawing;
-
 using Schneegans.Unattend;
+
 namespace Generate;
 
-class Generate : BaseGenerator
-{
-    public static void Main(string[] args){
+class Generate : BaseGenerator {
+    public static void Main(string[] args) {
         string? iso = null;
 
-        foreach (var arg in args){
-            if (arg.StartsWith("--iso=")){
+        foreach (var arg in args) {
+            if (arg.StartsWith("--iso=")) {
                 iso = arg["--iso=".Length..];
             }
         }
         new Generate().Run(iso);
     }
 
-    protected override Configuration GenerateSettings(UnattendGenerator generator){
+    protected override Configuration GenerateSettings(UnattendGenerator generator) {
 
         // checkout https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/Main.cs
-        return Configuration.Default with{
+        return Configuration.Default with {
             LanguageSettings = new UnattendedLanguageSettings(
             // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/ImageLanguage.json
             ImageLanguage: generator.Lookup<ImageLanguage>("en-US"),
