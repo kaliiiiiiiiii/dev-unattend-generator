@@ -1,3 +1,4 @@
+using System.Text;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Management.Automation; // Microsoft.PowerShell.SDK
@@ -76,21 +77,62 @@ public class IsoPacker : IDisposable {
     public void RepackTo(string newIsoPath) {
         if (!Directory.Exists(TmpExtractPath))
             throw new InvalidOperationException("Nothing to repack. Run Extract() first.");
+
         string oscdimgPath = FindOscdimg();
+
+        // Locate all required boot files with normalized paths
+        string etfsbootPath = Path.Combine(TmpExtractPath, "boot", "etfsboot.com");
+        string bootx64Path = Path.Combine(TmpExtractPath, "efi", "boot", "bootx64.efi");
+        string efisysPath = Path.Combine(TmpExtractPath, "efi", "microsoft", "boot", "efisys.bin");
+
+        // Verify all required boot files exist with full error details
+        if (!File.Exists(etfsbootPath))
+            throw new FileNotFoundException($"BIOS boot file not found at: {Path.GetFullPath(etfsbootPath)}");
+        if (!File.Exists(bootx64Path))
+            throw new FileNotFoundException($"UEFI bootloader not found at: {Path.GetFullPath(bootx64Path)}");
+        if (!File.Exists(efisysPath))
+            throw new FileNotFoundException($"UEFI boot image not found at: {Path.GetFullPath(efisysPath)}");
+
+        // Build arguments with proper path handling
+        var arguments = new List<string>
+        {
+        "-lNEWISO",
+        "-m",
+        "-o",
+        "-u2",
+        "-t",
+        $"-b{etfsbootPath}",  // No space after -b and no extra quotes
+        $"-bootdata:2#p0,e,b{efisysPath}#pEF,e,b{efisysPath}",
+        $"-pEF",
+        $"-e{bootx64Path}",   // No space after -e
+        TmpExtractPath,       // Source directory (no quotes)
+        Path.GetFullPath(newIsoPath)  // Destination (no quotes)
+    };
+
         var psi = new ProcessStartInfo {
-            FileName = oscdimgPath, // Must be installed (e.g., part of Windows ADK)
-            Arguments = $"-lNEWISO -m -o -u2 \"{TmpExtractPath}\" \"{newIsoPath}\"",
+            FileName = oscdimgPath,
+            Arguments = string.Join(" ", arguments),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(oscdimgPath) // Important!
         };
 
-        Process proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start process, got null");
-        proc.WaitForExit();
+        Console.WriteLine($"Executing: {psi.FileName} {psi.Arguments}");
 
-        if (proc.ExitCode != 0)
-            throw new Exception("ISO repack failed: " + proc.StandardError.ReadToEnd());
+        using (Process proc = new Process { StartInfo = psi }) {
+            proc.Start();
+            string output = proc.StandardOutput.ReadToEnd();
+            string error = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
+
+            if (proc.ExitCode != 0) {
+                throw new Exception($"ISO creation failed (Code {proc.ExitCode})\n" +
+                                  $"Output:\n{output}\n" +
+                                  $"Error:\n{error}");
+            }
+        }
     }
 
     private string MountIso() {
@@ -169,8 +211,8 @@ public class IsoPacker : IDisposable {
                     Console.Error.WriteLine($"Setting ACL failed:'{sourceFile}':\n {ex.Message}");
                 }
             } catch (Exception ex) {
-                    Console.Error.WriteLine($"Error copying '{sourceFile}': {ex.Message}");
-                }
+                Console.Error.WriteLine($"Error copying '{sourceFile}': {ex.Message}");
+            }
         });
     }
 }
