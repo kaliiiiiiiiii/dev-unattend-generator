@@ -31,8 +31,9 @@ dotnet build -c Release
 
 Running the executable
 ```bash
-Generator/bin/Release/net9.0/Generate.exe
+out/bin/Generate.exe --iso=./Win11_24H2_English_x64.iso
 ```
+The files will be packed into an empty iso file if `--iso=` is not provided.
 
 # References
 - [cschneegans/unattend-generator](https://github.com/cschneegans/unattend-generator) the original generator

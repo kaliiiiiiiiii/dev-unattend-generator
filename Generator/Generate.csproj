@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="DiscUtils.Iso9660" Version="0.16.13" />
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.5.2" />
   </ItemGroup>
 
 </Project>

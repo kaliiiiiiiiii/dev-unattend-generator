@@ -1,48 +1,26 @@
 ﻿using System.Collections.Immutable;
-using System.Xml;
 using System.Drawing;
-using DiscUtils.Iso9660;
-using System.Reflection.Metadata;
 
-namespace Schneegans.Unattend;
+using Schneegans.Unattend;
+namespace Generate;
 
-class Generate
+class Generate : BaseGenerator
 {
-    public static void Main(string[] args)
-    {
-        var outputDir = EnsureOutputDirectory();
-        var generator = new UnattendGenerator();
+    public static void Main(string[] args){
+        string? iso = null;
 
-        var xml = generator.GenerateXml(GenerateSettings(generator));
-        var xmlPath = WriteXmlFile(xml, outputDir);
-        CreateIso(outputDir, xmlPath);
-    }
-
-    static string EnsureOutputDirectory()
-    {
-        string outputDir = Path.Combine(Environment.CurrentDirectory, "out");
-        if (!Directory.Exists(outputDir))
-        {
-            Directory.CreateDirectory(outputDir);
+        foreach (var arg in args){
+            if (arg.StartsWith("--iso=")){
+                iso = arg["--iso=".Length..];
+            }
         }
-        return outputDir;
+        new Generate().Run(iso);
     }
 
-    static Configuration GenerateSettings(UnattendGenerator generator){
-
-        // read config files
-        string taskBarIcons = File.ReadAllText("config/TaskbarIcons.xml");
-        string startPins = File.ReadAllText("config/StartPins.json");
-
-        // read scripts
-        string SystemScript = File.ReadAllText("config/System.ps1");
-        string FirstLogonScript = File.ReadAllText("config/FirstLogon.ps1");
-        string UserOnceScript = File.ReadAllText("config/UserOnce.ps1");
-        string DefaultUserScript = File.ReadAllText("config/DefaultUser.ps1");
+    protected override Configuration GenerateSettings(UnattendGenerator generator){
 
         // checkout https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/Main.cs
-        return Configuration.Default with
-        {
+        return Configuration.Default with{
             LanguageSettings = new UnattendedLanguageSettings(
             // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/ImageLanguage.json
             ImageLanguage: generator.Lookup<ImageLanguage>("en-US"),
@@ -92,24 +70,25 @@ class Generate
 
             // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/Component.json
             Components = ImmutableDictionary.Create<ComponentAndPass, string>(),
-
-            // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/modifier/Bloatware.cs
             // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/Bloatware.json
+
+            // https://github.com/cschneegans/unattend-generator/blob/37887a00d9fb5061e4e74ce6b8a82fbb11fc6e87/Main.cs#L597
+            // Remove{token ?? displayName.Replace(" ", "")}
             Bloatwares = ImmutableList.CreateRange(
             [
                 generator.Lookup<Bloatware>("RemoveCopilot"),
                 generator.Lookup<Bloatware>("RemoveOneDrive"),
-                generator.Lookup<Bloatware>("Skype"),
-                generator.Lookup<Bloatware>("Xbox Apps"),
-                generator.Lookup<Bloatware>("News"),
-                generator.Lookup<Bloatware>("Weather"),
-                generator.Lookup<Bloatware>("To DO"),
-                generator.Lookup<Bloatware>("Solitaire Collection"),
-                generator.Lookup<Bloatware>("Maps"),
-                generator.Lookup<Bloatware>("Office 365"),
-                generator.Lookup<Bloatware>("Family"),
-                generator.Lookup<Bloatware>("Dev Home"),
-                generator.Lookup<Bloatware>("Bing Search")
+                generator.Lookup<Bloatware>("RemoveSkype"),
+                generator.Lookup<Bloatware>("RemoveXboxApps"),
+                generator.Lookup<Bloatware>("RemoveNews"),
+                generator.Lookup<Bloatware>("RemoveWeather"),
+                generator.Lookup<Bloatware>("RemoveToDO"),
+                generator.Lookup<Bloatware>("RemoveSolitaire"),
+                generator.Lookup<Bloatware>("RemoveMaps"),
+                generator.Lookup<Bloatware>("RemoveOffice365"),
+                generator.Lookup<Bloatware>("RemoveFamily"),
+                generator.Lookup<Bloatware>("RemoveDevHome"),
+                generator.Lookup<Bloatware>("RemoveBingSearch")
             ]
             ),
 
@@ -175,37 +154,15 @@ class Generate
             ShowEndTask = true,
             TaskbarSearch = TaskbarSearchMode.Hide,
 
-            StartPinsSettings = new CustomStartPinsSettings(Json: startPins),
+            StartPinsSettings = new CustomStartPinsSettings(Json: StartPinsJson),
             StartTilesSettings = new EmptyStartTilesSettings(), // win10 xml for StartPinsSettings
 
             StickyKeysSettings = new DisabledStickyKeysSettings(),
             CompactOsMode = CompactOsModes.Default,
-            TaskbarIcons = new CustomTaskbarIcons(Xml: taskBarIcons),
+            TaskbarIcons = new CustomTaskbarIcons(Xml: TaskbarIconsXml),
             Effects = new DefaultEffects(),
             // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/DesktopIcon.json
             DesktopIcons = new DefaultDesktopIconSettings(),
         };
-    }
-
-    static string WriteXmlFile(XmlDocument xml, string outputDir)
-    {
-        string path = Path.Combine(outputDir, "autounattend.xml");
-        File.WriteAllBytes(path, UnattendGenerator.Serialize(xml));
-        return path;
-    }
-
-    static void CreateIso(string outputDir, string xmlPath)
-    {
-        string isoPath = Path.Combine(outputDir, "devwin.iso");
-
-        using FileStream isoStream = File.Create(isoPath);
-        CDBuilder builder = new CDBuilder
-        {
-            UseJoliet = true,
-            VolumeIdentifier = "DEVWIN"
-        };
-
-        builder.AddFile("autounattend.xml", xmlPath);
-        builder.Build(isoStream);
     }
 }
