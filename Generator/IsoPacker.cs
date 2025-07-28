@@ -93,21 +93,18 @@ public class IsoPacker : IDisposable {
         if (!File.Exists(efisysPath))
             throw new FileNotFoundException($"UEFI boot image not found at: {Path.GetFullPath(efisysPath)}");
 
-        // Build arguments with proper path handling
-        var arguments = new List<string>
-        {
-        "-lNEWISO",
-        "-m",
-        "-o",
-        "-u2",
-        "-t",
-        $"-b{etfsbootPath}",
-        $"-bootdata:2#p0,e,b{efisysPath}#pEF,e,b{efisysPath}",
-        $"-pEF",
-        $"-e{bootx64Path}",
-        TmpExtractPath,
-        Path.GetFullPath(newIsoPath)
-    };
+        // https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options
+        var arguments = new List<string>{
+            "-lNEWISO",
+            "-m", // Ignores the maximum size limit of an image.
+            "-o", // encode duplicate files only once
+            "-u2", // Produces an image that contains only the UDF file system.
+            $"-b{efisysPath}",
+            $"-bootdata:2#p0,e,b{etfsbootPath}#pEF,e,bE{efisysPath}", // multi-boot entries https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options?view=windows-11#use-multi-boot-entries-to-create-a-bootable-image
+            $"-pEF", // Specifies the value to use for the platform ID in the El Torito catalog. The default ID is 0xEF to represent a Unified Extensible Firmware Interface (UEFI) system. 0x00 represents a BIOS system.
+            TmpExtractPath,
+            Path.GetFullPath(newIsoPath)
+        };
 
         var psi = new ProcessStartInfo {
             FileName = oscdimgPath,
