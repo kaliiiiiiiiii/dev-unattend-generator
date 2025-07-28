@@ -97,6 +97,13 @@ class Generate : BaseGenerator {
             ScriptSettings = new ScriptSettings(Scripts:
                 [
                     new(SystemScript, ScriptPhase.System, ScriptType.Ps1),
+                     new Script(@"
+                        Windows Registry Editor Version 5.00
+
+                        [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System]
+                        ""NoLocalPasswordResetQuestions""=dword:00000001
+                    ",
+                    ScriptPhase.System,ScriptType.Reg),
                     new(FirstLogonScript, ScriptPhase.FirstLogon, ScriptType.Ps1),
                     new(UserOnceScript, ScriptPhase.UserOnce, ScriptType.Ps1),
                     new(DefaultUserScript, ScriptPhase.DefaultUser, ScriptType.Ps1),

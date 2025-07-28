@@ -101,12 +101,12 @@ public class IsoPacker : IDisposable {
         "-o",
         "-u2",
         "-t",
-        $"-b{etfsbootPath}",  // No space after -b and no extra quotes
+        $"-b{etfsbootPath}",
         $"-bootdata:2#p0,e,b{efisysPath}#pEF,e,b{efisysPath}",
         $"-pEF",
-        $"-e{bootx64Path}",   // No space after -e
-        TmpExtractPath,       // Source directory (no quotes)
-        Path.GetFullPath(newIsoPath)  // Destination (no quotes)
+        $"-e{bootx64Path}",
+        TmpExtractPath,
+        Path.GetFullPath(newIsoPath)
     };
 
         var psi = new ProcessStartInfo {
@@ -126,7 +126,7 @@ public class IsoPacker : IDisposable {
             string output = proc.StandardOutput.ReadToEnd();
             string error = proc.StandardError.ReadToEnd();
             proc.WaitForExit();
-
+            Console.WriteLine(output);
             if (proc.ExitCode != 0) {
                 throw new Exception($"ISO creation failed (Code {proc.ExitCode})\n" +
                                   $"Output:\n{output}\n" +
