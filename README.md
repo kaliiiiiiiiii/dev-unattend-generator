@@ -13,7 +13,40 @@ see [docs/config.md](docs/config.md)
 See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/windows/unattend-generator/usage/)
 
 ## TODO's
-- leftover 2x (instead of 1x) `desktop.ini`
+- [ ] parse `oscdimg` output
+
+<details>
+<summary>Sample output</summary>
+
+```
+OSCDIMG 2.56 CD-ROM and DVD-ROM Premastering Utility
+Copyright (C) Microsoft, 1993-2012. All rights reserved.
+Licensed only for producing Microsoft authorized content.
+
+
+Scanning source tree
+Scanning source tree complete (969 files in 95 directories)
+
+Computing directory information complete
+
+Image file is 5818810368 bytes (before optimization)
+
+Writing 969 files in 95 directories to D:\data\projects\dev-unattend-generator\out\devwin.iso
+
+
+Storage optimization saved 25 files, 14342144 bytes (1% of image)
+
+After optimization, image file is 5806698496 bytes
+Space saved because of embedding, sparseness or optimization = 14342144
+```
+
+</details>
+
+- [ ] compare both iso's for
+    - file sha checksum diff
+    - added files and directories
+    - removed files and directories
+- [ ] leftover 2x (instead of 1x) `desktop.ini`
 
 ## Developing
 The configuration can be changed in [Generator/Generate.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/blob/v0.0.0.0.4/Generator/Generate.cs#L30-L133)
