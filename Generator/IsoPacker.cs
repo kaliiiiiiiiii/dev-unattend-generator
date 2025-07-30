@@ -55,6 +55,7 @@ public class IsoPacker : IDisposable {
         if (!disposed) {
             if (Directory.Exists(TmpExtractPath)) {
                 DeleteDirectory(TmpExtractPath);
+                Directory.Delete(TmpExtractPath);
             }
             disposed = true;
         }
