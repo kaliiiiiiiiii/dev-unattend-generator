@@ -13,7 +13,6 @@ public class ElToritoBootCatalog {
 
     public class BootEntry {
         public byte BootIndicator { get; set; } = 0x00;
-        public byte MediaType { get; set; } = 0x00;
         public ushort LoadSegment { get; set; } = 0x0000;
         public byte SystemType { get; set; } = 0x00;
         public ushort SectorCount { get; set; } = 0x0000;
@@ -29,7 +28,6 @@ public class ElToritoBootCatalog {
             Console.WriteLine($"│ Boot Entry");
             Console.WriteLine("├───────────────────────────────────");
             Console.WriteLine($"│ {"Boot Indicator:",-20} 0x{BootIndicator:X2} {(BootIndicator == 0x88 ? "(bootable)" : "")}");
-            Console.WriteLine($"│ {"Media Type:",-20} 0x{MediaType:X2} ({MediaDescription})");
             Console.WriteLine($"│ {"Load Segment:",-20} 0x{LoadSegment:X4}");
             Console.WriteLine($"│ {"System Type:",-20} 0x{SystemType:X2}");
             Console.WriteLine($"│ {"Sector Count:",-20} {SectorCount}");
@@ -73,9 +71,6 @@ public class ElToritoBootCatalog {
 
             if (original.BootIndicator != newEntry.BootIndicator)
                 throw new ValidationError($"BootIndicator mismatch at index {i}. Original: {original.BootIndicator}, New: {newEntry.BootIndicator}");
-
-            if (original.MediaType != newEntry.MediaType)
-                throw new ValidationError($"MediaType mismatch at index {i}. Original: {original.MediaType}, New: {newEntry.MediaType}");
 
             if (original.LoadSegment != newEntry.LoadSegment)
                 throw new ValidationError($"LoadSegment mismatch at index {i}. Original: {original.LoadSegment}, New: {newEntry.LoadSegment}");
@@ -176,7 +171,6 @@ public static class ElToritoParser {
                 } else if (entryType == 0x88 || entryType == 0x00) { // Boot entry
                     var entry = new ElToritoBootCatalog.BootEntry {
                         BootIndicator = sector[offset],
-                        MediaType = sector[offset + 1],
                         LoadSegment = BitConverter.ToUInt16(sector, offset + 2),
                         PlatformId = sector[offset + 4],
                         SectorCount = BitConverter.ToUInt16(sector, offset + 6),
