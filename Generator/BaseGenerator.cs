@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Xml;
 using DiscUtils.Iso9660;
 
@@ -26,12 +27,12 @@ abstract class BaseGenerator {
         if (File.Exists(outISO)) { File.Delete(outISO); }
         if (iso != null) {
             using var packer = new IsoPacker(iso);
-            var catalog = packer.ElToritoBootCatalog();
+            var catalog = packer.ElToritoBootCatalog;
             catalog.Log();
             WriteXmlFile(xml, packer.TmpExtractPath);
             var newCatalog = packer.RepackTo(outISO);
             newCatalog.Log();
-
+            catalog.ValidateBootEntriesEqual(newCatalog.Entries);
         } else {
             CreateIso(outputDir, xmlPath);
         }

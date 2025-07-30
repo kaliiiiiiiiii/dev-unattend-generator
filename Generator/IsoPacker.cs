@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Management.Automation; // Microsoft.PowerShell.SDK
 
-# if __UNO__
+#if __UNO__
 #else
 using AlphaFile = Alphaleonis.Win32.Filesystem.File;
 # endif
@@ -13,12 +13,14 @@ namespace Generate;
 
 public class IsoPacker : IDisposable {
     public string IsoPath { get; }
-    private bool disposed = false;
-    private readonly object _logLock = new();
 
+    public ElToritoBootCatalog ElToritoBootCatalog { get; }
+    private bool disposed = false;
+    private readonly Lock _logLock = new();
     public string TmpExtractPath { get; } = Path.Combine(Path.GetTempPath(), "iso_extract_" + Guid.NewGuid().ToString("N"));
     public IsoPacker(string isoPath) {
         IsoPath = isoPath;
+        ElToritoBootCatalog = ElToritoParser.ParseElToritoData(IsoPath);
         if (Directory.Exists(TmpExtractPath))
             Directory.Delete(TmpExtractPath, true);
         Directory.CreateDirectory(TmpExtractPath);
@@ -85,10 +87,6 @@ public class IsoPacker : IDisposable {
         return exePath;
     }
 
-    public ElToritoBootCatalog ElToritoBootCatalog() {
-        var catalog = ElToritoParser.ParseElToritoData(IsoPath);
-        return catalog;
-    }
     public ElToritoBootCatalog RepackTo(string newIsoPath) {
         if (!Directory.Exists(TmpExtractPath))
             throw new InvalidOperationException("Nothing to repack. Run Extract() first.");
@@ -109,18 +107,65 @@ public class IsoPacker : IDisposable {
             throw new FileNotFoundException($"UEFI boot image not found at: {Path.GetFullPath(efisysPath)}");
 
         // https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options
-        var arguments = new List<string>{
-            "-lDevWin_ISO_windows",
+        var arguments = new List<string> {
+            // Volume Label
+			"-lDevWin_ISO_windows",
             "-m", // Ignores the maximum size limit of an image.
-                  // "-o", // encode duplicate files only once (optimize)
-            "-e", //Disables floppy disk emulation in the El Torito catalog.
-            "-u2", // Produces an image that contains only the UDF file system.
-            $"-b{efisysPath}",
-            $"-bootdata:2#p0,e,b{etfsbootPath}#pEF,e,b{efisysPath}", // multi-boot entries https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options?view=windows-11#use-multi-boot-entries-to-create-a-bootable-image
-            $"-pEF", // Specifies the value to use for the platform ID in the El Torito catalog. The default ID is 0xEF to represent a Unified Extensible Firmware Interface (UEFI) system. 0x00 represents a BIOS system.
-            TmpExtractPath,
-            Path.GetFullPath(newIsoPath)
+				  // "-o", // encode duplicate files only once (optimize)
+			"-u2", // Produces an image that contains only the UDF file system.
+            "-h", // Includes hidden files and directories in the source path of the image.
+			TmpExtractPath,
+            Path.GetFullPath(newIsoPath),
+            
+			// 	Specifies the value to use for the platform ID in the El Torito catalog. The default ID is 0xEF to represent a Unified Extensible Firmware Interface (UEFI) system. 0x00 represents a BIOS system.
+            $"-p{ElToritoBootCatalog?.PlatformId ?? 0xEF:X2}",
+            
+            // Specifies a text file that has a layout for the files to be put in the image.
+            // "-yo<bootOrder.txt>"
         };
+
+        if (ElToritoBootCatalog?.Entries != null && ElToritoBootCatalog.Entries.Count > 0) {
+            var entry = ElToritoBootCatalog.Entries[0];
+
+            // multi-boot entries https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options?view=windows-11#use-multi-boot-entries-to-create-a-bootable-image
+            var tempFiles = new List<string>();
+            string bootdata = "";
+            int entryCount = ElToritoBootCatalog.Entries.Count;
+            bootdata += $"{entryCount}";
+
+            try {
+                foreach (var bootEntry in ElToritoBootCatalog.Entries) {
+                    // Create temp file for boot image
+                    string tempFile = Path.GetTempFileName();
+                    tempFiles.Add(tempFile);
+
+                    if (bootEntry.BootImage == null || bootEntry.BootImage.Length == 0)
+                        throw new InvalidOperationException("Boot entry has no valid boot image data");
+
+                    File.WriteAllBytes(tempFile, bootEntry.BootImage);
+
+                    var disableFloppyEmulation = "";
+                    if (bootEntry.MediaType == 0x00) {
+                        disableFloppyEmulation = ",e";
+                    }
+                    // Add formatted entry
+                    bootdata += $"#{bootEntry.PlatformId:X2}{disableFloppyEmulation},b{Path.GetFileName(tempFile)},t{entry.LoadSegment:X4}";
+                }
+                arguments.Add($"-bootdata:{bootdata}");
+            } finally {
+                // Clean up temporary files
+                foreach (var tempFile in tempFiles) {
+                    try {
+                        if (File.Exists(tempFile)) {
+                            File.Delete(tempFile);
+                        }
+                    } catch (Exception ex) {
+                        // Log warning but don't fail the operation
+                        Console.WriteLine($"Warning: Could not delete temporary file {tempFile}: {ex.Message}");
+                    }
+                }
+            }
+        }
 
         var psi = new ProcessStartInfo {
             FileName = oscdimgPath,
