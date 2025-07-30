@@ -33,7 +33,7 @@ public class ElToritoBootCatalog {
             Console.WriteLine($"│ {"Sector Count:",-20} {SectorCount}");
             Console.WriteLine($"│ {"Load RBA:",-20} {LoadRBA}");
             Console.WriteLine($"│ {"Platform Name:",-20} {PlatformName}");
-            Console.WriteLine($"│ {"Platform ID:",-20} {PlatformId :X2}");
+            Console.WriteLine($"│ {"Platform ID:",-20} {PlatformId:X2}");
             Console.WriteLine($"│ {"SHA256:",-20} {BootImageSha}");
             Console.WriteLine("└───────────────────────────────────");
         }
