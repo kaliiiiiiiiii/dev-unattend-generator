@@ -26,13 +26,18 @@ abstract class BaseGenerator {
         string outISO = "out/devwin.iso";
         if (File.Exists(outISO)) { File.Delete(outISO); }
         if (iso != null) {
-            using var packer = new IsoPacker(iso);
-            var catalog = packer.ElToritoBootCatalog;
-            catalog.Log();
-            WriteXmlFile(xml, packer.TmpExtractPath);
-            var newCatalog = packer.RepackTo(outISO);
-            newCatalog.Log();
-            catalog.ValidateBootEntriesEqual(newCatalog.Entries);
+            var packer = new IsoPacker(iso);
+            try {
+                var catalog = packer.ElToritoBootCatalog;
+                catalog.Log();
+                WriteXmlFile(xml, packer.TmpExtractPath);
+                var newCatalog = packer.RepackTo(outISO);
+                newCatalog.Log();
+                catalog.ValidateBootEntriesEqual(newCatalog.Entries);
+            } finally {
+                packer.Dispose();
+            }
+            
         } else {
             CreateIso(outputDir, xmlPath);
         }

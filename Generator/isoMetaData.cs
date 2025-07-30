@@ -18,40 +18,11 @@ public class ElToritoBootCatalog {
         public byte SystemType { get; set; } = 0x00;
         public ushort SectorCount { get; set; } = 0x0000;
         public uint LoadRBA { get; set; } = 0x00000000;
-        public string PlatformId { get; set; } = "Unknown";
-        public long ActualSectorCount { get; set; } = 0;
+        public byte PlatformId { get; set; } = 0x00;
+        public string PlatformName { get; set; } = "Unknown";
         public string MediaDescription { get; set; } = "Unknown";
         public byte[]? BootImage { get; set; }
         public string BootImageSha { get; set; } = "N/A";
-
-        public void CalculateActualSectorCount() {
-            switch (MediaType) {
-                case 0: // No emulation
-                    ActualSectorCount = 0;
-                    MediaDescription = "No emulation";
-                    break;
-                case 1: // 1.2MB floppy
-                    ActualSectorCount = 1200 * 1024 / VirtualSectorSize;
-                    MediaDescription = "1.2MB floppy";
-                    break;
-                case 2: // 1.44MB floppy
-                    ActualSectorCount = 1440 * 1024 / VirtualSectorSize;
-                    MediaDescription = "1.44MB floppy";
-                    break;
-                case 3: // 2.88MB floppy
-                    ActualSectorCount = 2880 * 1024 / VirtualSectorSize;
-                    MediaDescription = "2.88MB floppy";
-                    break;
-                case 4: // Hard disk
-                    ActualSectorCount = SectorCount; // Will be updated after reading MBR
-                    MediaDescription = "Hard disk";
-                    break;
-                default:
-                    ActualSectorCount = SectorCount;
-                    MediaDescription = $"Unknown (0x{MediaType:X2})";
-                    break;
-            }
-        }
 
         public void Log() {
             Console.WriteLine("┌───────────────────────────────────");
@@ -62,10 +33,10 @@ public class ElToritoBootCatalog {
             Console.WriteLine($"│ {"Load Segment:",-20} 0x{LoadSegment:X4}");
             Console.WriteLine($"│ {"System Type:",-20} 0x{SystemType:X2}");
             Console.WriteLine($"│ {"Sector Count:",-20} {SectorCount} (reported)");
-            Console.WriteLine($"│ {"Actual Sectors:",-20} {ActualSectorCount} (calculated)");
             Console.WriteLine($"│ {"Load RBA:",-20} {LoadRBA}");
+            Console.WriteLine($"│ {"Platform Name:",-20} {PlatformName}");
             Console.WriteLine($"│ {"Platform ID:",-20} {PlatformId}");
-            Console.WriteLine($"│ {"SHA256:",-20} {PlatformId}");
+            Console.WriteLine($"│ {"SHA256:",-20} {BootImageSha}");
             Console.WriteLine("└───────────────────────────────────");
         }
     }
@@ -117,10 +88,6 @@ public class ElToritoBootCatalog {
 
             if (original.LoadRBA != newEntry.LoadRBA)
                 throw new ValidationError($"LoadRBA mismatch at index {i}. Original: {original.LoadRBA}, New: {newEntry.LoadRBA}");
-
-            if (original.ActualSectorCount != newEntry.ActualSectorCount)
-                throw new ValidationError($"ActualSectorCount mismatch at index {i}. Original: {original.ActualSectorCount}, New: {newEntry.ActualSectorCount}");
-
             if (original.BootImageSha != newEntry.BootImageSha)
                 throw new ValidationError($"BootImageSha mismatch at index {i}. Original: {original.BootImageSha}, New: {newEntry.BootImageSha}");
         }
@@ -211,13 +178,12 @@ public static class ElToritoParser {
                         BootIndicator = sector[offset],
                         MediaType = sector[offset + 1],
                         LoadSegment = BitConverter.ToUInt16(sector, offset + 2),
-                        SystemType = sector[offset + 4],
+                        PlatformId = sector[offset + 4],
                         SectorCount = BitConverter.ToUInt16(sector, offset + 6),
                         LoadRBA = BitConverter.ToUInt32(sector, offset + 8),
-                        PlatformId = catalog.PlatformName,
+                        PlatformName = catalog.PlatformName,
                     };
 
-                    entry.CalculateActualSectorCount();
                     entry.BootImage = ExtractBootImage(entry, isoPath);
                     if (entry.BootImage != null) {
                         byte[] hashBytes = SHA256.HashData(entry.BootImage);
@@ -239,7 +205,7 @@ public static class ElToritoParser {
         return catalog;
     }
     public static byte[]? ExtractBootImage(ElToritoBootCatalog.BootEntry entry, string isoPath, string? outputPath = null) {
-        long sectorCount = entry.ActualSectorCount > 0 ? entry.ActualSectorCount : entry.SectorCount;
+        long sectorCount = entry.SectorCount;
         long byteCount = sectorCount * ElToritoBootCatalog.VirtualSectorSize;
 
         using var fs = new FileStream(isoPath, FileMode.Open, FileAccess.Read);

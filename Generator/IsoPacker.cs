@@ -53,11 +53,9 @@ public class IsoPacker : IDisposable {
 
     protected virtual void Cleanup() {
         if (!disposed) {
-            try {
-                if (Directory.Exists(TmpExtractPath)) {
-                    Directory.Delete(TmpExtractPath, true);
-                }
-            } catch { }
+            if (Directory.Exists(TmpExtractPath)) {
+                Directory.Delete(TmpExtractPath, true);
+            }
             disposed = true;
         }
     }
@@ -95,14 +93,12 @@ public class IsoPacker : IDisposable {
 
         // Locate all required boot files with normalized paths
         string etfsbootPath = Path.Combine(TmpExtractPath, "boot", "etfsboot.com");
-        string bootx64Path = Path.Combine(TmpExtractPath, "efi", "boot", "bootx64.efi");
+        // string bootx64Path = Path.Combine(TmpExtractPath, "efi", "boot", "bootx64.efi");
         string efisysPath = Path.Combine(TmpExtractPath, "efi", "microsoft", "boot", "efisys.bin");
 
         // Verify all required boot files exist with full error details
         if (!File.Exists(etfsbootPath))
             throw new FileNotFoundException($"BIOS boot file not found at: {Path.GetFullPath(etfsbootPath)}");
-        if (!File.Exists(bootx64Path))
-            throw new FileNotFoundException($"UEFI bootloader not found at: {Path.GetFullPath(bootx64Path)}");
         if (!File.Exists(efisysPath))
             throw new FileNotFoundException($"UEFI boot image not found at: {Path.GetFullPath(efisysPath)}");
 
@@ -119,53 +115,11 @@ public class IsoPacker : IDisposable {
             
 			// 	Specifies the value to use for the platform ID in the El Torito catalog. The default ID is 0xEF to represent a Unified Extensible Firmware Interface (UEFI) system. 0x00 represents a BIOS system.
             $"-p{ElToritoBootCatalog?.PlatformId ?? 0xEF:X2}",
+            $"-bootdata:2#p0,e,b{etfsbootPath}#pEF,e,b{efisysPath}", // multi-boot entries https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options?view=windows-11#use-multi-boot-entries-to-create-a-bootable-image
             
             // Specifies a text file that has a layout for the files to be put in the image.
             // "-yo<bootOrder.txt>"
         };
-
-        if (ElToritoBootCatalog?.Entries != null && ElToritoBootCatalog.Entries.Count > 0) {
-            var entry = ElToritoBootCatalog.Entries[0];
-
-            // multi-boot entries https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options?view=windows-11#use-multi-boot-entries-to-create-a-bootable-image
-            var tempFiles = new List<string>();
-            string bootdata = "";
-            int entryCount = ElToritoBootCatalog.Entries.Count;
-            bootdata += $"{entryCount}";
-
-            try {
-                foreach (var bootEntry in ElToritoBootCatalog.Entries) {
-                    // Create temp file for boot image
-                    string tempFile = Path.GetTempFileName();
-                    tempFiles.Add(tempFile);
-
-                    if (bootEntry.BootImage == null || bootEntry.BootImage.Length == 0)
-                        throw new InvalidOperationException("Boot entry has no valid boot image data");
-
-                    File.WriteAllBytes(tempFile, bootEntry.BootImage);
-
-                    var disableFloppyEmulation = "";
-                    if (bootEntry.MediaType == 0x00) {
-                        disableFloppyEmulation = ",e";
-                    }
-                    // Add formatted entry
-                    bootdata += $"#{bootEntry.PlatformId:X2}{disableFloppyEmulation},b{Path.GetFileName(tempFile)},t{entry.LoadSegment:X4}";
-                }
-                arguments.Add($"-bootdata:{bootdata}");
-            } finally {
-                // Clean up temporary files
-                foreach (var tempFile in tempFiles) {
-                    try {
-                        if (File.Exists(tempFile)) {
-                            File.Delete(tempFile);
-                        }
-                    } catch (Exception ex) {
-                        // Log warning but don't fail the operation
-                        Console.WriteLine($"Warning: Could not delete temporary file {tempFile}: {ex.Message}");
-                    }
-                }
-            }
-        }
 
         var psi = new ProcessStartInfo {
             FileName = oscdimgPath,
