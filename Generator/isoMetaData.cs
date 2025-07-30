@@ -32,10 +32,10 @@ public class ElToritoBootCatalog {
             Console.WriteLine($"│ {"Media Type:",-20} 0x{MediaType:X2} ({MediaDescription})");
             Console.WriteLine($"│ {"Load Segment:",-20} 0x{LoadSegment:X4}");
             Console.WriteLine($"│ {"System Type:",-20} 0x{SystemType:X2}");
-            Console.WriteLine($"│ {"Sector Count:",-20} {SectorCount} (reported)");
+            Console.WriteLine($"│ {"Sector Count:",-20} {SectorCount}");
             Console.WriteLine($"│ {"Load RBA:",-20} {LoadRBA}");
             Console.WriteLine($"│ {"Platform Name:",-20} {PlatformName}");
-            Console.WriteLine($"│ {"Platform ID:",-20} {PlatformId}");
+            Console.WriteLine($"│ {"Platform ID:",-20} {PlatformId :X2}");
             Console.WriteLine($"│ {"SHA256:",-20} {BootImageSha}");
             Console.WriteLine("└───────────────────────────────────");
         }

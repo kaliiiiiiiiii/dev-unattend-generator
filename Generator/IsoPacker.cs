@@ -54,7 +54,7 @@ public class IsoPacker : IDisposable {
     protected virtual void Cleanup() {
         if (!disposed) {
             if (Directory.Exists(TmpExtractPath)) {
-                Directory.Delete(TmpExtractPath, true);
+                DeleteDirectory(TmpExtractPath);
             }
             disposed = true;
         }
@@ -229,5 +229,58 @@ public class IsoPacker : IDisposable {
                 Console.Error.WriteLine($"Error copying '{sourceFile}': {ex.Message}");
             }
         });
+    }
+
+    private static void DeleteDirectory(string path) {
+        if (!Directory.Exists(path))
+            return;
+
+        var errors = new ConcurrentBag<Exception>();
+
+        string[] files;
+        string[] dirs;
+
+        try {
+            files = Directory.GetFiles(path);
+            dirs = Directory.GetDirectories(path);
+        } catch (Exception ex) {
+            throw new IOException($"Failed to enumerate contents of '{path}'", ex);
+        }
+
+        // Remove attributes and delete files
+        Parallel.ForEach(files, file => {
+            try {
+                File.SetAttributes(file, FileAttributes.Normal);
+                File.Delete(file);
+            } catch (Exception ex) {
+                errors.Add(new IOException($"Failed to delete file '{file}'", ex));
+            }
+        });
+
+        // Recursively delete directories
+        Parallel.ForEach(dirs, dir => {
+            try {
+                ClearAttributes(dir);
+                Directory.Delete(dir, true);
+            } catch (Exception ex) {
+                errors.Add(new IOException($"Failed to delete subdirectory '{dir}'", ex));
+            }
+        });
+
+        if (!errors.IsEmpty)
+            throw new AggregateException("One or more errors occurred while deleting directory contents.", errors);
+    }
+    private static void ClearAttributes(string dir) {
+        foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories)) {
+            try {
+                File.SetAttributes(file, FileAttributes.Normal);
+            } catch { /* Optionally collect error */ }
+        }
+
+        foreach (var subDir in Directory.EnumerateDirectories(dir, "*", SearchOption.AllDirectories)) {
+            try {
+                File.SetAttributes(subDir, FileAttributes.Normal);
+            } catch { /* Optionally collect error */ }
+        }
     }
 }
