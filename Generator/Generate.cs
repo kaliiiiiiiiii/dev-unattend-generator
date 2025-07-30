@@ -7,6 +7,7 @@ namespace Generate;
 class Generate : BaseGenerator {
     public static void Main(string[] args) {
         string? iso = null;
+        File.WriteAllText("out/error.log", string.Empty);
 
         foreach (var arg in args) {
             if (arg.StartsWith("--iso=")) {

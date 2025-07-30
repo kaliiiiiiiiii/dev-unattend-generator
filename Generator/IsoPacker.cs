@@ -1,4 +1,5 @@
-using System.Text;
+using System.Collections.Concurrent;
+
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Management.Automation; // Microsoft.PowerShell.SDK
@@ -13,6 +14,7 @@ namespace Generate;
 public class IsoPacker : IDisposable {
     public string IsoPath { get; }
     private bool disposed = false;
+    private readonly object _logLock = new();
 
     public string TmpExtractPath { get; } = Path.Combine(Path.GetTempPath(), "iso_extract_" + Guid.NewGuid().ToString("N"));
     public IsoPacker(string isoPath) {
@@ -21,15 +23,15 @@ public class IsoPacker : IDisposable {
             Directory.Delete(TmpExtractPath, true);
         Directory.CreateDirectory(TmpExtractPath);
 
-        string mountedDrive = MountIso();
-        if (mountedDrive == null)
-            throw new Exception("Failed to mount ISO.");
-
+        string mountedDrive = MountIso() ?? throw new Exception("Failed to mount ISO.");
         try {
             CopyWithMetadata(mountedDrive, TmpExtractPath);
         } finally {
             DismountIso();
         }
+
+        Console.CancelKeyPress += OnCancelKeyPress;
+        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
     }
 
     ~IsoPacker() { Dispose(); }
@@ -37,6 +39,14 @@ public class IsoPacker : IDisposable {
     public void Dispose() {
         Cleanup();
         GC.SuppressFinalize(this);
+    }
+
+    private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e) {
+        Cleanup();
+    }
+
+    private void OnProcessExit(object? sender, EventArgs e) {
+        Cleanup();
     }
 
     protected virtual void Cleanup() {
@@ -74,7 +84,12 @@ public class IsoPacker : IDisposable {
 
         return exePath;
     }
-    public void RepackTo(string newIsoPath) {
+
+    public ElToritoBootCatalog ElToritoBootCatalog() {
+        var catalog = ElToritoParser.ParseElToritoData(IsoPath);
+        return catalog;
+    }
+    public ElToritoBootCatalog RepackTo(string newIsoPath) {
         if (!Directory.Exists(TmpExtractPath))
             throw new InvalidOperationException("Nothing to repack. Run Extract() first.");
 
@@ -95,12 +110,13 @@ public class IsoPacker : IDisposable {
 
         // https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options
         var arguments = new List<string>{
-            "-lNEWISO",
+            "-lDevWin_ISO_windows",
             "-m", // Ignores the maximum size limit of an image.
-            "-o", // encode duplicate files only once
+                  // "-o", // encode duplicate files only once (optimize)
+            "-e", //Disables floppy disk emulation in the El Torito catalog.
             "-u2", // Produces an image that contains only the UDF file system.
             $"-b{efisysPath}",
-            $"-bootdata:2#p0,e,b{etfsbootPath}#pEF,e,bE{efisysPath}", // multi-boot entries https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options?view=windows-11#use-multi-boot-entries-to-create-a-bootable-image
+            $"-bootdata:2#p0,e,b{etfsbootPath}#pEF,e,b{efisysPath}", // multi-boot entries https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/oscdimg-command-line-options?view=windows-11#use-multi-boot-entries-to-create-a-bootable-image
             $"-pEF", // Specifies the value to use for the platform ID in the El Torito catalog. The default ID is 0xEF to represent a Unified Extensible Firmware Interface (UEFI) system. 0x00 represents a BIOS system.
             TmpExtractPath,
             Path.GetFullPath(newIsoPath)
@@ -118,18 +134,18 @@ public class IsoPacker : IDisposable {
 
         Console.WriteLine($"Executing: {psi.FileName} {psi.Arguments}");
 
-        using (Process proc = new Process { StartInfo = psi }) {
-            proc.Start();
-            string output = proc.StandardOutput.ReadToEnd();
-            string error = proc.StandardError.ReadToEnd();
-            proc.WaitForExit();
-            Console.WriteLine(output);
-            if (proc.ExitCode != 0) {
-                throw new Exception($"ISO creation failed (Code {proc.ExitCode})\n" +
-                                  $"Output:\n{output}\n" +
-                                  $"Error:\n{error}");
-            }
+        using Process proc = new() { StartInfo = psi };
+        proc.Start();
+        string output = proc.StandardOutput.ReadToEnd();
+        string error = proc.StandardError.ReadToEnd();
+        proc.WaitForExit();
+        Console.WriteLine(output);
+        if (proc.ExitCode != 0) {
+            throw new Exception($"ISO creation failed (Code {proc.ExitCode})\n" +
+                              $"Output:\n{output}\n" +
+                              $"Error:\n{error}");
         }
+        return ElToritoParser.ParseElToritoData(IsoPath);
     }
 
     private string MountIso() {
@@ -170,7 +186,7 @@ public class IsoPacker : IDisposable {
             throw new InvalidOperationException(GetPowerShellErrors(ps));
     }
 
-    private static void CopyWithMetadata(string sourceDrive, string destPath, int maxThreads = 16) {
+    private void CopyWithMetadata(string sourceDrive, string destPath, int maxThreads = 16) {
         if (!Directory.Exists(sourceDrive))
             throw new DirectoryNotFoundException($"Source '{sourceDrive}' not found.");
 
@@ -205,7 +221,10 @@ public class IsoPacker : IDisposable {
                 try {
                     AlphaFile.SetAccessControl(destFile, security);
                 } catch (Exception ex) {
-                    Console.Error.WriteLine($"Setting ACL failed:'{sourceFile}':\n {ex.Message}");
+                    string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [ERROR] Setting ACL failed: {ex.Message}{Environment.NewLine}";
+                    lock (_logLock) {
+                        File.AppendAllText("out/error.log", logMessage);
+                    }
                 }
             } catch (Exception ex) {
                 Console.Error.WriteLine($"Error copying '{sourceFile}': {ex.Message}");

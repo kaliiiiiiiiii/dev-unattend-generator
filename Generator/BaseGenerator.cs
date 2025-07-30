@@ -26,8 +26,11 @@ abstract class BaseGenerator {
         if (File.Exists(outISO)) { File.Delete(outISO); }
         if (iso != null) {
             using var packer = new IsoPacker(iso);
+            var catalog = packer.ElToritoBootCatalog();
+            catalog.Log();
             WriteXmlFile(xml, packer.TmpExtractPath);
-            packer.RepackTo(outISO);
+            var newCatalog = packer.RepackTo(outISO);
+            newCatalog.Log();
 
         } else {
             CreateIso(outputDir, xmlPath);
