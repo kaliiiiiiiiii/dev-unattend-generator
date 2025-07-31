@@ -1,7 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Xml;
 using DiscUtils.Iso9660;
-
+using Json.More;
+using Microsoft.PowerShell.Commands;
 using Schneegans.Unattend;
 
 namespace Generate;
@@ -20,7 +21,17 @@ abstract class BaseGenerator {
         var outputDir = EnsureOutputDirectory();
         var generator = new UnattendGenerator();
 
-        var xml = generator.GenerateXml(GenerateSettings(generator));
+        var config = GenerateSettings(generator);
+
+        var downloader = new WindowsEsdDownloader();
+        string language = "en-US";
+        string edition = "Professional";
+        string architecture = !config.ProcessorArchitectures.IsEmpty ? config.ProcessorArchitectures.First().ToString(): "x64";
+        string esdpath = downloader.Download(language, edition, architecture);
+        Console.WriteLine(esdpath);
+        // throw new Exception("");
+
+        var xml = generator.GenerateXml(config);
         var xmlPath = WriteXmlFile(xml, outputDir);
 
         string outISO = "out/devwin.iso";
@@ -37,7 +48,7 @@ abstract class BaseGenerator {
             } finally {
                 packer.Dispose();
             }
-            
+
         } else {
             CreateIso(outputDir, xmlPath);
         }

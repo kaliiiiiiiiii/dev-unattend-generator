@@ -1,0 +1,117 @@
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
+using Wmhelp.XPath2;
+
+namespace Generate;
+
+public class WindowsEsdDownloader {
+    private static readonly HttpClient _httpClient = new();
+    private readonly string _cacheDirectory;
+    private XDocument _xmlDoc;
+
+    public WindowsEsdDownloader() {
+        _cacheDirectory = Path.Combine(Directory.GetCurrentDirectory(), "cache/esd");
+        Directory.CreateDirectory(_cacheDirectory); // Ensure cache directory exists
+        _xmlDoc = GetProductsXml();
+    }
+
+    public IEnumerable<string> Languages =>
+    _xmlDoc.XPath2SelectValues("//File/LanguageCode")
+           .Cast<string>()
+           .Distinct()
+           .OrderBy(x => x);
+
+    public IEnumerable<string> GetEditions(string language) =>
+        _xmlDoc.XPath2SelectValues($"//File/Edition")
+            .Cast<string>()
+           .Distinct()
+           .OrderBy(x => x);
+
+    public IEnumerable<string> GetArchitectures() =>
+        _xmlDoc.XPath2SelectValues($"//File/Architecture")
+            .Cast<string>()
+           .Distinct()
+           .OrderBy(x => x);
+
+    public string Download(string language, string edition, string architecture) {
+        var fileXml = GetFileXml(language, edition, architecture);
+        var fileName = GetElementValue(fileXml, "FileName");
+        var fileUrl = GetElementValue(fileXml, "FilePath");
+        var expectedSha1 = GetElementValue(fileXml, "Sha1");
+
+        // cache file name: {original_name}-{language}-{edition}-{architecture}-{sha1}.esd
+        var cacheFileName = $"{Path.GetFileNameWithoutExtension(fileName)}-{language}-{edition}-{architecture}-{expectedSha1}.esd";
+        var cacheFilePath = Path.Combine(_cacheDirectory, cacheFileName);
+
+        // Check if file already exists in cache
+        if (File.Exists(cacheFilePath)) {
+            // Verify the existing file's hash
+            using var sha1 = SHA1.Create();
+            using var existingFileStream = File.OpenRead(cacheFilePath);
+            var existingSha1 = Convert.ToHexString(sha1.ComputeHash(existingFileStream));
+
+            if (string.Equals(expectedSha1, existingSha1, StringComparison.OrdinalIgnoreCase)) {
+                return cacheFilePath;
+            }
+            File.Delete(cacheFilePath);
+        }
+
+        // Download the file
+        using var responseStream = _httpClient.GetStreamAsync(fileUrl).Result;
+        using (var fileStream = File.Create(cacheFilePath)) {
+            responseStream.CopyTo(fileStream);
+        }
+
+        // Verify the downloaded file
+        using var verifyStream = File.OpenRead(cacheFilePath);
+        var actualSha1 = Convert.ToHexString(SHA1.Create().ComputeHash(verifyStream));
+
+        if (!string.Equals(expectedSha1, actualSha1, StringComparison.OrdinalIgnoreCase)) {
+            File.Delete(cacheFilePath);
+            throw new InvalidOperationException("SHA-1 verification failed");
+        }
+        return cacheFilePath;
+    }
+
+    public string GetSha1(string language, string edition, string architecture) {
+        var fileXml = GetFileXml(language, edition, architecture);
+        return GetElementValue(fileXml, "Sha1");
+    }
+
+    public string GetUrl(string language, string edition, string architecture) {
+        var fileXml = GetFileXml(language, edition, architecture);
+        return GetElementValue(fileXml, "FilePath");
+    }
+
+    private static XDocument GetProductsXml() {
+        using var task = _httpClient.GetByteArrayAsync("https://go.microsoft.com/fwlink/?LinkId=2156292");
+        task.Wait();
+        byte[] xmlBytes = CabParser.ExtractFile(task.Result, "products.xml");
+        using var stream = new MemoryStream(xmlBytes);
+        return XDocument.Load(stream);
+    }
+
+    private XElement GetFileXml(string language, string edition, string architecture) {
+        if (string.Equals(architecture, "amd64", StringComparison.OrdinalIgnoreCase)) {
+            architecture = "x64";
+        }
+        string param = $@"
+[
+  matches(LanguageCode, '^{RegEsc(language)}$', 'i') and
+  matches(Edition, '^{RegEsc(edition)}$', 'i') and
+  matches(Architecture, '^{RegEsc(architecture)}$', 'i')
+]";
+        return _xmlDoc.XPath2SelectElement($"//File{param}")
+            ?? throw new ArgumentException($"No matching file found for the specified parameters: \n{param}");
+    }
+
+    private static string GetElementValue(XElement parent, string elementName) {
+        return parent.Element(elementName)?.Value
+            ?? throw new ArgumentException($"{elementName} not found in XML");
+    }
+    private static string RegEsc(string input) {
+        // Escape regex special chars for XPath regex, roughly same as .NET Regex.Escape
+        return Regex.Escape(input);
+    }
+}

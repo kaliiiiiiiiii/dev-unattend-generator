@@ -124,17 +124,18 @@ public class IsoPacker : IDisposable {
 
         var psi = new ProcessStartInfo {
             FileName = oscdimgPath,
-            Arguments = string.Join(" ", arguments),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
             WorkingDirectory = Path.GetDirectoryName(oscdimgPath) // Important!
         };
-
-        Console.WriteLine($"Executing: {psi.FileName} {psi.Arguments}");
+        foreach (var arg in arguments) {
+            psi.ArgumentList.Add(arg);
+        }
 
         using Process proc = new() { StartInfo = psi };
+        Console.WriteLine($"Executing: {psi.FileName} {string.Join(" ", psi.ArgumentList)}");
         proc.Start();
         string output = proc.StandardOutput.ReadToEnd();
         string error = proc.StandardError.ReadToEnd();

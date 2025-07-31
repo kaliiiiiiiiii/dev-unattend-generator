@@ -2,6 +2,7 @@ generator/bin
 generator/obj
 out
 config
+cache
 
 # vscode
 dev-unattend-generator.sln

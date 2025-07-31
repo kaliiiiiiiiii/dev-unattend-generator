@@ -49,7 +49,7 @@ class Generate : BaseGenerator {
                "Visible": true
            }, */
             // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/resource/WindowsEdition.json
-            EditionSettings = new CustomEditionSettings(productKey: "VK7JG-NPHTM-C97JM-9MPGT-3V66T"),
+            EditionSettings = new UnattendedEditionSettings(new WindowsEdition("pro", "Pro", "VK7JG-NPHTM-C97JM-9MPGT-3V66T", true)),
 
             LockoutSettings = new DefaultLockoutSettings(),
             PasswordExpirationSettings = new UnlimitedPasswordExpirationSettings(),

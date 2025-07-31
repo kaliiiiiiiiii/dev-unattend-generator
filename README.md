@@ -71,6 +71,7 @@ The files will be packed into an empty iso file if `--iso=` is not provided. Thi
 # References
 - [cschneegans/unattend-generator](https://github.com/cschneegans/unattend-generator) the original generator
 - [kaliiiiiiiiii/unattend-generator](https://github.com/kaliiiiiiiiii/unattend-generator) my custom generator
+- [download-windows-esd](https://github.com/mattieb/download-windows-esd)
 
 # Licences
 
