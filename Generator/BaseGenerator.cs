@@ -23,35 +23,41 @@ abstract class BaseGenerator {
 
         var config = GenerateSettings(generator);
 
-        var downloader = new WindowsEsdDownloader();
-        string language = "en-US";
-        string edition = "Professional";
-        string architecture = !config.ProcessorArchitectures.IsEmpty ? config.ProcessorArchitectures.First().ToString(): "x64";
-        string esdpath = downloader.Download(language, edition, architecture);
-        Console.WriteLine(esdpath);
+
         // throw new Exception("");
 
         var xml = generator.GenerateXml(config);
         var xmlPath = WriteXmlFile(xml, outputDir);
 
+        string singleOutISO = "out/singledevwin.iso";
         string outISO = "out/devwin.iso";
+        CreateIso(outputDir, xmlPath);
         if (File.Exists(outISO)) { File.Delete(outISO); }
-        if (iso != null) {
-            var packer = new IsoPacker(iso);
-            try {
-                var catalog = packer.ElToritoBootCatalog;
-                catalog.Log();
-                WriteXmlFile(xml, packer.TmpExtractPath);
-                var newCatalog = packer.RepackTo(outISO);
-                newCatalog.Log();
-                catalog.ValidateBootEntriesEqual(newCatalog.Entries);
-            } finally {
-                packer.Dispose();
-            }
+        if (File.Exists(singleOutISO)) { File.Delete(singleOutISO); }
+#if __UNO__ // not on windows
+        Console.WriteLine("Generating iso is currently only supported on Windows")
+#else // on windows, continuing
 
-        } else {
-            CreateIso(outputDir, xmlPath);
+        if (iso == null) {
+            var downloader = new WindowsEsdDownloader();
+            string language = "en-US";
+            string edition = "Professional";
+            string architecture = !config.ProcessorArchitectures.IsEmpty ? config.ProcessorArchitectures.First().ToString() : "x64";
+            iso = downloader.Download(language, edition, architecture);
         }
+        var packer = new IsoPacker(iso);
+        try {
+            var catalog = packer.ElToritoBootCatalog;
+            catalog?.Log();
+            WriteXmlFile(xml, packer.TmpExtractPath);
+            var newCatalog = packer.RepackTo(outISO);
+            newCatalog.Log();
+            catalog?.ValidateBootEntriesEqual(newCatalog.Entries);
+        } finally {
+            packer.Dispose();
+        }
+#endif
+
     }
 
     private void LoadConfigFiles() {

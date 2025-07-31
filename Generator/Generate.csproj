@@ -14,9 +14,7 @@
   <ItemGroup>
     <PackageReference Include="AlphaFS" Version="2.2.6" />
     <PackageReference Include="LTRData.DiscUtils.Iso9660" Version="1.0.62" />
-    <PackageReference Include="LTRData.DiscUtils.Udf" Version="1.0.62" />
     <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.5.2" />
-    <PackageReference Include="Noyacode.CabinetManager" Version="1.0.5" />
     <PackageReference Include="XPath2" Version="1.1.5" />
   </ItemGroup>
 

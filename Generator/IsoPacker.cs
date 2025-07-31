@@ -1,35 +1,61 @@
-using System.Collections.Concurrent;
-
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Management.Automation; // Microsoft.PowerShell.SDK
-
-#if __UNO__
-#else
-using AlphaFile = Alphaleonis.Win32.Filesystem.File;
-# endif
+using System.Security.Principal;
 
 namespace Generate;
+
+public enum FileType {
+    ISO,
+    ESD,
+}
 
 public class IsoPacker : IDisposable {
     public string IsoPath { get; }
 
-    public ElToritoBootCatalog ElToritoBootCatalog { get; }
+    public FileType FileType { get; }
+
+    public ElToritoBootCatalog? ElToritoBootCatalog { get; }
     private bool disposed = false;
-    private readonly Lock _logLock = new();
+    private bool mounted = false;
     public string TmpExtractPath { get; } = Path.Combine(Path.GetTempPath(), "iso_extract_" + Guid.NewGuid().ToString("N"));
+
+    private readonly TempFile? EsdTmpFile;
     public IsoPacker(string isoPath) {
         IsoPath = isoPath;
-        ElToritoBootCatalog = ElToritoParser.ParseElToritoData(IsoPath);
-        if (Directory.Exists(TmpExtractPath))
-            Directory.Delete(TmpExtractPath, true);
-        Directory.CreateDirectory(TmpExtractPath);
 
-        string mountedDrive = MountIso() ?? throw new Exception("Failed to mount ISO.");
-        try {
-            CopyWithMetadata(mountedDrive, TmpExtractPath);
-        } finally {
-            DismountIso();
+        string extension = Path.GetExtension(IsoPath) ?? throw new Exception("Expected an extension for isoPath");
+        switch (extension) {
+            case "iso": {
+                    if (Directory.Exists(TmpExtractPath))
+                        Directory.Delete(TmpExtractPath, true);
+                    Directory.CreateDirectory(TmpExtractPath);
+                    FileType = FileType.ISO;
+                    ElToritoBootCatalog = ElToritoParser.ParseElToritoData(IsoPath);
+                    var mountedDrive = MountIso() ?? throw new Exception("Failed to mount ISO.");
+                    try {
+                        FileUtils.CopyWithMetadata(mountedDrive, TmpExtractPath);
+                    } finally {
+                        DismountIso();
+                    }
+                    break;
+                }
+            case "esd": {
+                    FileType = FileType.ESD;
+                    EsdTmpFile = new TempFile();
+                    File.Copy(IsoPath, EsdTmpFile.Path);
+                    try {
+                        MountEsd(EsdTmpFile.Path);
+                    } catch {
+                        DismountEsd(false);
+                        throw;
+                    }
+
+                    break;
+                }
+            default:
+                throw new Exception($"Unknown file extension: {extension}");
+
         }
 
         Console.CancelKeyPress += OnCancelKeyPress;
@@ -53,9 +79,13 @@ public class IsoPacker : IDisposable {
 
     protected virtual void Cleanup() {
         if (!disposed) {
-            if (Directory.Exists(TmpExtractPath)) {
-                DeleteDirectory(TmpExtractPath);
-                Directory.Delete(TmpExtractPath);
+            if (FileType == FileType.ISO && Directory.Exists(TmpExtractPath)) {
+                FileUtils.DeleteDirectory(TmpExtractPath);
+            } else if (FileType == FileType.ESD) {
+                DismountEsd(true);
+                EsdTmpFile?.Dispose();
+            } else {
+                throw new Exception("Unknown FileType");
             }
             disposed = true;
         }
@@ -88,7 +118,11 @@ public class IsoPacker : IDisposable {
 
     public ElToritoBootCatalog RepackTo(string newIsoPath) {
         if (!Directory.Exists(TmpExtractPath))
-            throw new InvalidOperationException("Nothing to repack. Run Extract() first.");
+            throw new InvalidOperationException($"Nothing found at TmpExtractPath {TmpExtractPath}");
+
+        if (FileType == FileType.ESD && EsdTmpFile !=null && !File.Exists(EsdTmpFile.Path)) {
+            throw new Exception("ESD doesn't support repacking multiple times, EsdTempFile doesn't exist anymore or has moved.");
+        }
 
         string oscdimgPath = FindOscdimg();
 
@@ -146,143 +180,138 @@ public class IsoPacker : IDisposable {
                               $"Output:\n{output}\n" +
                               $"Error:\n{error}");
         }
+        if (FileType == FileType.ESD && EsdTmpFile != null) {
+            DismountEsd(true);
+            File.Move(EsdTmpFile.Path, IsoPath);
+        }
+        
         return ElToritoParser.ParseElToritoData(IsoPath);
     }
 
-    private string MountIso() {
-        using PowerShell ps = PowerShell.Create();
+    private string? MountIso() {
+        if (!mounted) {
+            using PowerShell ps = PowerShell.Create();
 
-        // Mount the ISO
-        ps.AddScript("Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass");
-        ps.AddScript($"Mount-DiskImage -ImagePath '{IsoPath}'");
-        ps.Invoke();
+            // Mount the ISO
+            ps.AddScript("Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass");
+            ps.AddScript($"Mount-DiskImage -ImagePath '{IsoPath}'");
+            ps.Invoke();
 
-        if (ps.HadErrors)
-            throw new InvalidOperationException(GetPowerShellErrors(ps));
+            if (ps.HadErrors)
+                throw new InvalidOperationException(GetPowerShellErrors(ps));
 
-        ps.Commands.Clear();
+            ps.Commands.Clear();
 
-        // Get drive letter
-        ps.AddScript($@"
+            // Get drive letter
+            ps.AddScript($@"
         $img = Get-DiskImage -ImagePath '{IsoPath}'
         Get-Volume -DiskImage $img | Select-Object -ExpandProperty DriveLetter
         ");
-        var result = ps.Invoke();
+            var result = ps.Invoke();
 
-        if (ps.HadErrors)
-            throw new InvalidOperationException(GetPowerShellErrors(ps));
+            mounted = true;
+            if (ps.HadErrors)
+                throw new InvalidOperationException(GetPowerShellErrors(ps));
 
-        if (result.Count == 0 || result[0] == null)
-            throw new InvalidOperationException("Failed to get drive letter for mounted ISO.");
 
-        return result[0].ToString() + ":\\";
+            if (result.Count == 0 || result[0] == null)
+                throw new InvalidOperationException("Failed to get drive letter for mounted ISO.");
+
+            return result[0].ToString() + ":\\";
+        }
+        return null;
     }
 
     private void DismountIso() {
-        using PowerShell ps = PowerShell.Create();
-        ps.AddScript("Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass");
-        ps.AddScript($"Dismount-DiskImage -ImagePath '{IsoPath}'");
-        ps.Invoke();
-        if (ps.HadErrors)
-            throw new InvalidOperationException(GetPowerShellErrors(ps));
+        if (mounted) {
+            using PowerShell ps = PowerShell.Create();
+            ps.AddScript("Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass");
+            ps.AddScript($"Dismount-DiskImage -ImagePath '{IsoPath}'");
+            ps.Invoke();
+            if (ps.HadErrors)
+                throw new InvalidOperationException(GetPowerShellErrors(ps));
+            mounted = false;
+        }
     }
 
-    private void CopyWithMetadata(string sourceDrive, string destPath, int maxThreads = 16) {
-        if (!Directory.Exists(sourceDrive))
-            throw new DirectoryNotFoundException($"Source '{sourceDrive}' not found.");
+    public void MountEsd(string esdPath) {
+        if (!mounted) {
+            var psi = new ProcessStartInfo {
+                FileName = "dism.exe",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                Verb = IsAdministrator() ? null : "runas" // Request UAC elevation if not admin
+            };
 
-        // Create all directories first (preserve structure)
-        foreach (var dirPath in Directory.EnumerateDirectories(sourceDrive, "*", SearchOption.AllDirectories)) {
-            var relativePath = Path.GetRelativePath(sourceDrive, dirPath);
-            var targetDirPath = Path.Combine(destPath, relativePath);
-            Directory.CreateDirectory(targetDirPath);
-        }
+            psi.ArgumentList.Add("/Mount-Wim");
+            psi.ArgumentList.Add($"/WimFile:{esdPath}");
+            psi.ArgumentList.Add("/index:1");
+            psi.ArgumentList.Add($"/MountDir:{TmpExtractPath}");
 
-        // Enumerate all files
-        var files = Directory.EnumerateFiles(sourceDrive, "*", SearchOption.AllDirectories);
+            using var proc = new Process { StartInfo = psi };
 
-        // Copy files in parallel
-        Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = maxThreads }, sourceFile => {
-            var relativePath = Path.GetRelativePath(sourceDrive, sourceFile);
-            var destFile = Path.Combine(destPath, relativePath);
+            proc.Start();
+            mounted = true;
+            string output = proc.StandardOutput.ReadToEnd();
+            string error = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
 
-            try {
-                // Copy file (choose SystemFile or AlphaFile)
-                File.Copy(sourceFile, destFile, overwrite: true);
-
-                // Preserve timestamps and attributes
-                var sourceInfo = new FileInfo(sourceFile);
-                File.SetCreationTime(destFile, sourceInfo.CreationTime);
-                File.SetLastWriteTime(destFile, sourceInfo.LastWriteTime);
-                File.SetLastAccessTime(destFile, sourceInfo.LastAccessTime);
-                File.SetAttributes(destFile, sourceInfo.Attributes);
-
-                // Copy ACL using Alphaleonis (better ACL support)
-                var security = AlphaFile.GetAccessControl(sourceFile);
-                try {
-                    AlphaFile.SetAccessControl(destFile, security);
-                } catch (Exception ex) {
-                    string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [ERROR] Setting ACL failed: {ex.Message}{Environment.NewLine}";
-                    lock (_logLock) {
-                        File.AppendAllText("out/error.log", logMessage);
-                    }
-                }
-            } catch (Exception ex) {
-                Console.Error.WriteLine($"Error copying '{sourceFile}': {ex.Message}");
+            if (proc.ExitCode != 0) {
+                try { DismountEsd(false); } catch { }
+                throw new Exception($"ESD mount failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
             }
-        });
+        }
     }
 
-    private static void DeleteDirectory(string path) {
-        if (!Directory.Exists(path))
-            return;
+    public void DismountEsd(bool commitChanges) {
+        if (mounted) {
+            var psi = new ProcessStartInfo {
+                FileName = "dism.exe",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                Verb = IsAdministrator() ? null : "runas" // Request UAC elevation if not admin
+            };
 
-        var errors = new ConcurrentBag<Exception>();
+            psi.ArgumentList.Add("/Unmount-Wim");
+            psi.ArgumentList.Add($"/MountDir:{TmpExtractPath}");
+            psi.ArgumentList.Add(commitChanges ? "/commit" : "/discard");
 
-        string[] files;
-        string[] dirs;
+            using var proc = new Process { StartInfo = psi };
 
-        try {
-            files = Directory.GetFiles(path);
-            dirs = Directory.GetDirectories(path);
-        } catch (Exception ex) {
-            throw new IOException($"Failed to enumerate contents of '{path}'", ex);
+            proc.Start();
+            string output = proc.StandardOutput.ReadToEnd();
+            string error = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
+
+            if (proc.ExitCode != 0) {
+                throw new Exception($"ESD unmount failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
+            }
+
+            try { Directory.Delete(TmpExtractPath); } catch { }
+            mounted = false;
         }
-
-        // Remove attributes and delete files
-        Parallel.ForEach(files, file => {
-            try {
-                File.SetAttributes(file, FileAttributes.Normal);
-                File.Delete(file);
-            } catch (Exception ex) {
-                errors.Add(new IOException($"Failed to delete file '{file}'", ex));
-            }
-        });
-
-        // Recursively delete directories
-        Parallel.ForEach(dirs, dir => {
-            try {
-                ClearAttributes(dir);
-                Directory.Delete(dir, true);
-            } catch (Exception ex) {
-                errors.Add(new IOException($"Failed to delete subdirectory '{dir}'", ex));
-            }
-        });
-
-        if (!errors.IsEmpty)
-            throw new AggregateException("One or more errors occurred while deleting directory contents.", errors);
     }
-    private static void ClearAttributes(string dir) {
-        foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories)) {
-            try {
-                File.SetAttributes(file, FileAttributes.Normal);
-            } catch { /* Optionally collect error */ }
-        }
 
-        foreach (var subDir in Directory.EnumerateDirectories(dir, "*", SearchOption.AllDirectories)) {
-            try {
-                File.SetAttributes(subDir, FileAttributes.Normal);
-            } catch { /* Optionally collect error */ }
-        }
+    private static bool IsAdministrator() {
+#if __UNO__
+    raise new PlatformNotSupportedException("Checking if admin only supported on windows")
+#else
+#pragma warning disable CA1416 // Validate platform compatibility
+        using var identity = WindowsIdentity.GetCurrent();
+#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning disable CA1416 // Validate platform compatibility
+        var principal = new WindowsPrincipal(identity);
+#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning disable CA1416 // Validate platform compatibility
+#pragma warning disable CA1416 // Validate platform compatibility
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+#pragma warning restore CA1416 // Validate platform compatibility
+#pragma warning restore CA1416 // Validate platform compatibility
+#endif
+
     }
 }
