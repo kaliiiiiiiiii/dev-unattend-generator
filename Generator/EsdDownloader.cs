@@ -11,7 +11,7 @@ public class WindowsEsdDownloader {
     private XDocument _xmlDoc;
 
     public WindowsEsdDownloader() {
-        _cacheDirectory = Path.Combine(Directory.GetCurrentDirectory(), "cache/esd");
+        _cacheDirectory = Path.Join(Directory.GetCurrentDirectory(), "cache/esd");
         Directory.CreateDirectory(_cacheDirectory); // Ensure cache directory exists
         _xmlDoc = GetProductsXml();
     }
@@ -42,7 +42,7 @@ public class WindowsEsdDownloader {
 
         // cache file name: {original_name}-{language}-{edition}-{architecture}-{sha1}.esd
         var cacheFileName = $"{Path.GetFileNameWithoutExtension(fileName)}-{language}-{edition}-{architecture}-{expectedSha1}.esd";
-        var cacheFilePath = Path.Combine(_cacheDirectory, cacheFileName);
+        var cacheFilePath = Path.Join(_cacheDirectory, cacheFileName);
 
         // Check if file already exists in cache
         if (File.Exists(cacheFilePath)) {
@@ -54,8 +54,7 @@ public class WindowsEsdDownloader {
             if (string.Equals(expectedSha1, existingSha1, StringComparison.OrdinalIgnoreCase)) {
                 return cacheFilePath;
             }
-            Console.Write($"Found existing modified or corrupted file: {cacheFilePath}, deleting and downloading newly.");
-            throw new Exception($"Found existing modified or corrupted file: {cacheFilePath}. You may delete the file.");
+            throw new Exception($"Found existing modified or corrupted file: {cacheFilePath}. Expected {existingSha1}, but got {existingSha1} You may delete the file.");
         }
 
         // Download the file

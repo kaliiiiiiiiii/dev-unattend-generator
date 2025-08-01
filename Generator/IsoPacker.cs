@@ -18,7 +18,7 @@ public class IsoPacker : IDisposable {
     public ElToritoBootCatalog? ElToritoBootCatalog { get; }
     private bool disposed = false;
     private bool mounted = false;
-    public string TmpExtractPath { get; } = Path.Combine(Path.GetTempPath(), "iso_extract_" + Guid.NewGuid().ToString("N"));
+    public string TmpExtractPath { get; } = Path.Join(Path.GetTempPath(), "iso_extract_" + Guid.NewGuid().ToString("N"));
     public IsoPacker(string isoPath) {
         IsoPath = isoPath;
 
@@ -98,7 +98,7 @@ public class IsoPacker : IDisposable {
             _ => throw new PlatformNotSupportedException("Unsupported architecture.")
         };
 
-        string exePath = Path.Combine(
+        string exePath = Path.Join(
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
             "Windows Kits", "10", "Assessment and Deployment Kit",
             "Deployment Tools", archFolder, "Oscdimg", "oscdimg.exe"
@@ -118,9 +118,9 @@ public class IsoPacker : IDisposable {
         string oscdimgPath = FindOscdimg();
 
         // Locate all required boot files with normalized paths
-        string etfsbootPath = Path.Combine(TmpExtractPath, "boot", "etfsboot.com");
-        // string bootx64Path = Path.Combine(TmpExtractPath, "efi", "boot", "bootx64.efi");
-        string efisysPath = Path.Combine(TmpExtractPath, "efi", "microsoft", "boot", "efisys.bin");
+        string etfsbootPath = Path.Join(TmpExtractPath, "boot", "etfsboot.com");
+        // string bootx64Path = Path.Join(TmpExtractPath, "efi", "boot", "bootx64.efi");
+        string efisysPath = Path.Join(TmpExtractPath, "efi", "microsoft", "boot", "efisys.bin");
 
         // Verify all required boot files exist with full error details
         if (!File.Exists(etfsbootPath))

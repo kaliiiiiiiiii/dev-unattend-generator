@@ -32,7 +32,7 @@ public static class CabParser {
             throw new Exception($"CAB extraction failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
         }
 
-        string extractedFilePath = Path.Combine(tempDir.Path, targetFileName);
+        string extractedFilePath = Path.Join(tempDir.Path, targetFileName);
         if (!File.Exists(extractedFilePath)) {
             throw new Exception($"File '{targetFileName}' not found in CAB archive");
         }

@@ -11,7 +11,7 @@ public sealed class TempDirectory : IDisposable {
     public string Path { get; }
 
     public TempDirectory() {
-        Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
+        Path = System.IO.Path.Join(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(Path);
     }
 
@@ -49,7 +49,7 @@ static class FileUtils {
         // Create all directories first (preserve structure)
         foreach (var dirPath in Directory.EnumerateDirectories(sourceDrive, "*", SearchOption.AllDirectories)) {
             var relativePath = Path.GetRelativePath(sourceDrive, dirPath);
-            var targetDirPath = Path.Combine(destPath, relativePath);
+            var targetDirPath = Path.Join(destPath, relativePath);
             Directory.CreateDirectory(targetDirPath);
         }
 
@@ -61,7 +61,7 @@ static class FileUtils {
         // Copy files in parallel
         Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = maxThreads }, sourceFile => {
             var relativePath = Path.GetRelativePath(sourceDrive, sourceFile);
-            var destFile = Path.Combine(destPath, relativePath);
+            var destFile = Path.Join(destPath, relativePath);
 
             try {
                 // Copy file (choose SystemFile or AlphaFile)

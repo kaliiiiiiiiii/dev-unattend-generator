@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Schneegans.Unattend;
+using System.Drawing;
 
 namespace Generate;
 
@@ -16,7 +17,7 @@ class Generate : BaseGenerator {
         try {
             new Generate().Run(iso);
         } catch (Exception ex) {
-            Console.WriteLine(ex.Message);
+            Console.Error.WriteLine( $"{ex.Message}{ex.StackTrace}");
             Console.WriteLine("Press ENTER to exit");
             Console.ReadLine();
         }

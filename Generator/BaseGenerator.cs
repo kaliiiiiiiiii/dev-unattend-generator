@@ -67,7 +67,7 @@ abstract class BaseGenerator {
     }
 
     protected static string EnsureOutputDirectory() {
-        string outputDir = Path.Combine(Environment.CurrentDirectory, "out");
+        string outputDir = Path.Join(Environment.CurrentDirectory, "out");
         if (!Directory.Exists(outputDir)) {
             Directory.CreateDirectory(outputDir);
         }
@@ -75,7 +75,7 @@ abstract class BaseGenerator {
     }
 
     protected static string WriteXmlFile(XmlDocument xml, string outputDir) {
-        string path = Path.Combine(outputDir, "autounattend.xml");
+        string path = Path.Join(outputDir, "autounattend.xml");
         File.WriteAllBytes(path, UnattendGenerator.Serialize(xml));
         return path;
     }
