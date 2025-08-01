@@ -48,8 +48,11 @@ public class WindowsEsdDownloader {
         if (File.Exists(cacheFilePath)) {
             // Verify the existing file's hash
             using var sha1 = SHA1.Create();
-            using var existingFileStream = File.OpenRead(cacheFilePath);
-            var existingSha1 = Convert.ToHexString(sha1.ComputeHash(existingFileStream));
+            string existingSha1;
+            using (var existingFileStream = File.OpenRead(cacheFilePath)) {
+                existingSha1 = Convert.ToHexString(sha1.ComputeHash(existingFileStream));
+            };
+            
 
             if (string.Equals(expectedSha1, existingSha1, StringComparison.OrdinalIgnoreCase)) {
                 return cacheFilePath;
@@ -59,14 +62,15 @@ public class WindowsEsdDownloader {
         }
 
         // Download the file
-        using var responseStream = _httpClient.GetStreamAsync(fileUrl).Result;
-        using (var fileStream = File.Create(cacheFilePath)) {
-            responseStream.CopyTo(fileStream);
-        }
-
+        using (var responseStream = _httpClient.GetStreamAsync(fileUrl).Result) {
+			using var fileStream = File.Create(cacheFilePath);
+			responseStream.CopyTo(fileStream);
+		};
         // Verify the downloaded file
-        using var verifyStream = File.OpenRead(cacheFilePath);
-        var actualSha1 = Convert.ToHexString(SHA1.Create().ComputeHash(verifyStream));
+        string actualSha1;
+        using (var verifyStream = File.OpenRead(cacheFilePath)){
+            actualSha1 = Convert.ToHexString(SHA1.Create().ComputeHash(verifyStream));
+        };
 
         if (!string.Equals(expectedSha1, actualSha1, StringComparison.OrdinalIgnoreCase)) {
             File.Delete(cacheFilePath);
