@@ -23,11 +23,10 @@ public class IsoPacker : IDisposable {
         IsoPath = isoPath;
 
         string extension = Path.GetExtension(IsoPath) ?? throw new Exception("Expected an extension for isoPath");
+        if (!Directory.Exists(TmpExtractPath)){Directory.CreateDirectory(TmpExtractPath);}
+            
         switch (extension) {
             case ".iso": {
-                    if (Directory.Exists(TmpExtractPath))
-                        Directory.Delete(TmpExtractPath, true);
-                    Directory.CreateDirectory(TmpExtractPath);
                     FileType = FileType.ISO;
                     ElToritoBootCatalog = ElToritoParser.ParseElToritoData(IsoPath);
                     var mountedDrive = MountIso() ?? throw new Exception("Failed to mount ISO.");
@@ -167,14 +166,13 @@ public class IsoPacker : IDisposable {
         }
 
         using Process proc = new() { StartInfo = psi };
-        Console.WriteLine($"Executing: {psi.FileName} {string.Join(" ", psi.ArgumentList)}");
         proc.Start();
         string output = proc.StandardOutput.ReadToEnd();
         string error = proc.StandardError.ReadToEnd();
         proc.WaitForExit();
         Console.WriteLine(output);
         if (proc.ExitCode != 0) {
-            throw new Exception($"ISO creation failed (Code {proc.ExitCode})\n" +
+            throw new Exception($"ISO creation with executing: {psi.FileName} {string.Join(" ", psi.ArgumentList)} failed (Code {proc.ExitCode})\n" +
                               $"Output:\n{output}\n" +
                               $"Error:\n{error}");
         }
@@ -254,7 +252,7 @@ public class IsoPacker : IDisposable {
                 mounted = false;
                 throw new Exception("dism requires elevated privileges");
             } else if (proc.ExitCode != 0) {
-                throw new Exception($"ESD mount failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
+                throw new Exception($"ESD mount executing: {psi.FileName} {string.Join(" ", psi.ArgumentList)} failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
             }
         }
     }
@@ -283,7 +281,7 @@ public class IsoPacker : IDisposable {
                 mounted = false;
                 throw new Exception("dism requires elevated privileges");
             } else if (proc.ExitCode != 0) {
-                throw new Exception($"ESD unmount failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
+                throw new Exception($"ESD unmount executing: {psi.FileName} {string.Join(" ", psi.ArgumentList)} failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
             }
 
             try { Directory.Delete(TmpExtractPath); } catch { }

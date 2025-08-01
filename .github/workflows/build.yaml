@@ -52,7 +52,7 @@ jobs:
           files: |
             out/devWinGen-${{ github.event.release.tag_name }}.zip
             out/autounattend.xml
-            out/devwin.iso
+            out/singledevwin.iso
           draft: ${{ steps.release-flags.outputs.draft }}
           make_latest: ${{ steps.release-flags.outputs.make_latest }}
         env:

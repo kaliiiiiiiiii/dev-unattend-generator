@@ -27,7 +27,7 @@ abstract class BaseGenerator {
         var xmlPath = WriteXmlFile(xml, outputDir);
 
         string singleOutISO = "singledevwin.iso";
-        string outISO = "devwin.iso";
+        string outISO = Path.Join(outputDir, "devwin.iso");
         if (File.Exists(outISO)) { File.Delete(outISO); }
         if (File.Exists(singleOutISO)) { File.Delete(singleOutISO); }
         CreateIso(Path.Join(outputDir, singleOutISO), xmlPath);
