@@ -40,10 +40,17 @@ public class IsoPacker : IDisposable {
                 }
             case ".esd": {
                     FileType = FileType.ESD;
+                    Thread.Sleep(1000); // sleep 1 second
                     try {
                         MountEsd(IsoPath);
-                    } catch {
-                        DismountEsd(false);
+                    } catch (Exception ex) {
+                        try {
+                            DismountEsd(false);
+                        } catch {
+                            Console.Error.WriteLine($"{ex.Message}{ex.StackTrace}");
+                            Console.Error.WriteLine($"Durning the handling of this exception, another exception occurred:");
+                            throw;
+                        }
                         throw;
                     }
 
