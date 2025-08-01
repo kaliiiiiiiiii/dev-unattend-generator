@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Drawing;
 using Schneegans.Unattend;
 
 namespace Generate;
@@ -14,7 +13,14 @@ class Generate : BaseGenerator {
                 iso = arg["--iso=".Length..];
             }
         }
-        new Generate().Run(iso);
+        try {
+            new Generate().Run(iso);
+        } catch (Exception ex) {
+            Console.WriteLine(ex.Message);
+            Console.WriteLine("Press ENTER to exit");
+            Console.ReadLine();
+        }
+        
     }
 
     protected override Configuration GenerateSettings(UnattendGenerator generator) {

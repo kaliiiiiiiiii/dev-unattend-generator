@@ -54,7 +54,8 @@ public class WindowsEsdDownloader {
             if (string.Equals(expectedSha1, existingSha1, StringComparison.OrdinalIgnoreCase)) {
                 return cacheFilePath;
             }
-            File.Delete(cacheFilePath);
+            Console.Write($"Found existing modified or corrupted file: {cacheFilePath}, deleting and downloading newly.");
+            throw new Exception($"Found existing modified or corrupted file: {cacheFilePath}. You may delete the file.");
         }
 
         // Download the file

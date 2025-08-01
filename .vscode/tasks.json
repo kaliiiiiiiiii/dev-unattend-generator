@@ -11,6 +11,18 @@
       },
     },
     {
+      "label": "build (publish) Generator.exe",
+      "type": "shell",
+      "command": ".\\build.bat",
+      "args": [
+        "--publish"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+    },
+    {
       "label": "run Generator.exe (autodownload ESD)",
       "type": "shell",
       "command": "${workspaceFolder}/out/bin/Generate.exe",
@@ -22,9 +34,11 @@
     },
     {
       "label": "run Generator.exe (ISO)",
-      "type": "shell",
+      "type": "process",
       "command": "${workspaceFolder}/out/bin/Generate.exe",
-      "args": ["--iso=${workspaceFolder}/out/Win11_24H2_English_x64.iso"],
+      "args": [
+        "--iso=${workspaceFolder}/out/Win11_24H2_English_x64.iso"
+      ],
       "group": {
         "kind": "test",
         "isDefault": false

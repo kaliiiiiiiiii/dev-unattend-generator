@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Management.Automation; // Microsoft.PowerShell.SDK
-using System.Security.Principal;
+
 
 namespace Generate;
 
@@ -19,14 +19,12 @@ public class IsoPacker : IDisposable {
     private bool disposed = false;
     private bool mounted = false;
     public string TmpExtractPath { get; } = Path.Combine(Path.GetTempPath(), "iso_extract_" + Guid.NewGuid().ToString("N"));
-
-    private readonly TempFile? EsdTmpFile;
     public IsoPacker(string isoPath) {
         IsoPath = isoPath;
 
         string extension = Path.GetExtension(IsoPath) ?? throw new Exception("Expected an extension for isoPath");
         switch (extension) {
-            case "iso": {
+            case ".iso": {
                     if (Directory.Exists(TmpExtractPath))
                         Directory.Delete(TmpExtractPath, true);
                     Directory.CreateDirectory(TmpExtractPath);
@@ -40,12 +38,10 @@ public class IsoPacker : IDisposable {
                     }
                     break;
                 }
-            case "esd": {
+            case ".esd": {
                     FileType = FileType.ESD;
-                    EsdTmpFile = new TempFile();
-                    File.Copy(IsoPath, EsdTmpFile.Path);
                     try {
-                        MountEsd(EsdTmpFile.Path);
+                        MountEsd(IsoPath);
                     } catch {
                         DismountEsd(false);
                         throw;
@@ -82,8 +78,7 @@ public class IsoPacker : IDisposable {
             if (FileType == FileType.ISO && Directory.Exists(TmpExtractPath)) {
                 FileUtils.DeleteDirectory(TmpExtractPath);
             } else if (FileType == FileType.ESD) {
-                DismountEsd(true);
-                EsdTmpFile?.Dispose();
+                DismountEsd(false);
             } else {
                 throw new Exception("Unknown FileType");
             }
@@ -119,10 +114,6 @@ public class IsoPacker : IDisposable {
     public ElToritoBootCatalog RepackTo(string newIsoPath) {
         if (!Directory.Exists(TmpExtractPath))
             throw new InvalidOperationException($"Nothing found at TmpExtractPath {TmpExtractPath}");
-
-        if (FileType == FileType.ESD && EsdTmpFile !=null && !File.Exists(EsdTmpFile.Path)) {
-            throw new Exception("ESD doesn't support repacking multiple times, EsdTempFile doesn't exist anymore or has moved.");
-        }
 
         string oscdimgPath = FindOscdimg();
 
@@ -180,11 +171,7 @@ public class IsoPacker : IDisposable {
                               $"Output:\n{output}\n" +
                               $"Error:\n{error}");
         }
-        if (FileType == FileType.ESD && EsdTmpFile != null) {
-            DismountEsd(true);
-            File.Move(EsdTmpFile.Path, IsoPath);
-        }
-        
+
         return ElToritoParser.ParseElToritoData(IsoPath);
     }
 
@@ -233,7 +220,6 @@ public class IsoPacker : IDisposable {
             mounted = false;
         }
     }
-
     public void MountEsd(string esdPath) {
         if (!mounted) {
             var psi = new ProcessStartInfo {
@@ -242,7 +228,6 @@ public class IsoPacker : IDisposable {
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                Verb = IsAdministrator() ? null : "runas" // Request UAC elevation if not admin
             };
 
             psi.ArgumentList.Add("/Mount-Wim");
@@ -258,13 +243,14 @@ public class IsoPacker : IDisposable {
             string error = proc.StandardError.ReadToEnd();
             proc.WaitForExit();
 
-            if (proc.ExitCode != 0) {
-                try { DismountEsd(false); } catch { }
+            if (proc.ExitCode == 740) {
+                mounted = false;
+                throw new Exception("dism requires elevated privileges");
+            } else if (proc.ExitCode != 0) {
                 throw new Exception($"ESD mount failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
             }
         }
     }
-
     public void DismountEsd(bool commitChanges) {
         if (mounted) {
             var psi = new ProcessStartInfo {
@@ -272,8 +258,7 @@ public class IsoPacker : IDisposable {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
-                CreateNoWindow = true,
-                Verb = IsAdministrator() ? null : "runas" // Request UAC elevation if not admin
+                CreateNoWindow = true
             };
 
             psi.ArgumentList.Add("/Unmount-Wim");
@@ -287,31 +272,15 @@ public class IsoPacker : IDisposable {
             string error = proc.StandardError.ReadToEnd();
             proc.WaitForExit();
 
-            if (proc.ExitCode != 0) {
+            if (proc.ExitCode == 740) {
+                mounted = false;
+                throw new Exception("dism requires elevated privileges");
+            } else if (proc.ExitCode != 0) {
                 throw new Exception($"ESD unmount failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
             }
 
             try { Directory.Delete(TmpExtractPath); } catch { }
             mounted = false;
         }
-    }
-
-    private static bool IsAdministrator() {
-#if __UNO__
-    raise new PlatformNotSupportedException("Checking if admin only supported on windows")
-#else
-#pragma warning disable CA1416 // Validate platform compatibility
-        using var identity = WindowsIdentity.GetCurrent();
-#pragma warning restore CA1416 // Validate platform compatibility
-#pragma warning disable CA1416 // Validate platform compatibility
-        var principal = new WindowsPrincipal(identity);
-#pragma warning restore CA1416 // Validate platform compatibility
-#pragma warning disable CA1416 // Validate platform compatibility
-#pragma warning disable CA1416 // Validate platform compatibility
-        return principal.IsInRole(WindowsBuiltInRole.Administrator);
-#pragma warning restore CA1416 // Validate platform compatibility
-#pragma warning restore CA1416 // Validate platform compatibility
-#endif
-
     }
 }

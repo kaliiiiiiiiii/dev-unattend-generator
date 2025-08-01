@@ -1,8 +1,5 @@
-using System.ComponentModel.DataAnnotations;
 using System.Xml;
 using DiscUtils.Iso9660;
-using Json.More;
-using Microsoft.PowerShell.Commands;
 using Schneegans.Unattend;
 
 namespace Generate;
@@ -29,11 +26,11 @@ abstract class BaseGenerator {
         var xml = generator.GenerateXml(config);
         var xmlPath = WriteXmlFile(xml, outputDir);
 
-        string singleOutISO = "out/singledevwin.iso";
-        string outISO = "out/devwin.iso";
-        CreateIso(outputDir, xmlPath);
+        string singleOutISO = "singledevwin.iso";
+        string outISO = "devwin.iso";
         if (File.Exists(outISO)) { File.Delete(outISO); }
         if (File.Exists(singleOutISO)) { File.Delete(singleOutISO); }
+        CreateIso(Path.Join(outputDir, singleOutISO), xmlPath);
 #if __UNO__ // not on windows
         Console.WriteLine("Generating iso is currently only supported on Windows")
 #else // on windows, continuing
@@ -83,8 +80,7 @@ abstract class BaseGenerator {
         return path;
     }
 
-    protected static void CreateIso(string outputDir, string xmlPath) {
-        string isoPath = Path.Combine(outputDir, "devwin.iso");
+    protected static void CreateIso(string isoPath, string xmlPath) {
 
         using FileStream isoStream = File.Create(isoPath);
         CDBuilder builder = new() {
