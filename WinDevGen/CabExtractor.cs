@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Generate;
+namespace WinDevGen;
 
 public static class CabParser {
     public static byte[] ExtractFile(byte[] cabData, string targetFileName) {

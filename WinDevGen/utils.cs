@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 using AlphaFile = Alphaleonis.Win32.Filesystem.File;
 # endif
 
-namespace Generate;
+namespace WinDevGen;
 
 public sealed class TempDirectory : IDisposable {
     public string Path { get; }

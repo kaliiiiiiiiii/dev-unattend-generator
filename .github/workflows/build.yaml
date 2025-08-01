@@ -26,12 +26,12 @@ jobs:
         run: .\\build.bat --publish
 
       - name: Run Generator.exe to generate XML
-        run: ./out/bin/Generate.exe
+        run: ./out/bin/WinDevGen.exe
         shell: pwsh
 
       - name: Create zip
         id: tagrename
-        run: Compress-Archive -Path "./out/bin" -DestinationPath "./out/devWinGen-${{ github.event.release.tag_name }}.zip"
+        run: Compress-Archive -Path "./out/bin" -DestinationPath "./out/WinDevGen-${{ github.event.release.tag_name }}.zip"
         shell: pwsh
       
       - name: Determine release flags
@@ -50,7 +50,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            out/devWinGen-${{ github.event.release.tag_name }}.zip
+            out/WinDevGen-${{ github.event.release.tag_name }}.zip
             out/autounattend.xml
             out/singledevwin.iso
           draft: ${{ steps.release-flags.outputs.draft }}

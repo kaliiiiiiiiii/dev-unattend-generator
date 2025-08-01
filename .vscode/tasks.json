@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build Generator.exe",
+      "label": "build WinDevGen.exe",
       "type": "shell",
       "command": ".\\build.bat",
       "group": {
@@ -11,7 +11,7 @@
       },
     },
     {
-      "label": "build (publish) Generator.exe",
+      "label": "build (publish) WinDevGen.exe",
       "type": "shell",
       "command": ".\\build.bat",
       "args": [
@@ -23,9 +23,9 @@
       },
     },
     {
-      "label": "run Generator.exe (autodownload ESD)",
+      "label": "run WinDevGen.exe (autodownload ESD)",
       "type": "shell",
-      "command": "${workspaceFolder}/out/bin/Generate.exe",
+      "command": "${workspaceFolder}/out/bin/WinDevGen.exe",
       "args": [],
       "group": {
         "kind": "test",
@@ -33,9 +33,9 @@
       }
     },
     {
-      "label": "run Generator.exe (ISO)",
+      "label": "run WinDevGen.exe (ISO)",
       "type": "process",
-      "command": "${workspaceFolder}/out/bin/Generate.exe",
+      "command": "${workspaceFolder}/out/bin/WinDevGen.exe",
       "args": [
         "--iso=${workspaceFolder}/out/Win11_24H2_English_x64.iso"
       ],

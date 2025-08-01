@@ -14,12 +14,12 @@ IF %ERRORLEVEL% GTR 3 EXIT /B %ERRORLEVEL%
 
 :: Build or publish the project
 IF "%PUBLISH_MODE%"=="true" (
-    echo dotnet publish -c Release --output ".\out\bin" ".\Generator\generate.csproj"
-    dotnet publish -c Release --output ".\out\bin" ".\Generator\generate.csproj"
+    echo dotnet publish -c Release --output ".\out\bin" ".\WinDevGen\WinDevGen.csproj"
+    dotnet publish -c Release --output ".\out\bin" ".\WinDevGen\WinDevGen.csproj"
     IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
 ) ELSE (
-    echo dotnet build -c Release --output ".\out\bin" ".\Generator\generate.csproj"
-    dotnet build -c Release --output ".\out\bin" ".\Generator\generate.csproj"
+    echo dotnet build -c Release --output ".\out\bin" ".\WinDevGen\WinDevGen.csproj"
+    dotnet build -c Release --output ".\out\bin" ".\WinDevGen\WinDevGen.csproj"
     IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
 )
 

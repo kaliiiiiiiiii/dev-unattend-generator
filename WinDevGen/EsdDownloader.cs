@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Wmhelp.XPath2;
 
-namespace Generate;
+namespace WinDevGen;
 
 public class WindowsEsdDownloader {
     private static readonly HttpClient _httpClient = new();

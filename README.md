@@ -15,7 +15,7 @@ See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/wind
 ## TODO's
 
 ## Developing
-The configuration can be changed in [Generator/Generate.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/blob/v0.0.0.0.4/Generator/Generate.cs#L30-L133)
+The configuration can be changed in [WinDevGen/WinDevGen.cs]()
 
 > [!Note]  
 > The language must match the ISO's language. Otherwise, windows will default to the ISO's language.
@@ -28,7 +28,7 @@ build.bat
 ```
 
 Output:
-- `out/bin/` - folder containing the executable `Generate.exe` and other required files.
+- `out/bin/` - folder containing the executable `WinDevGen.exe` and other required files.
 
 ##### Running
 Dependencies:
@@ -37,13 +37,13 @@ Dependencies:
 
 Automatically download installation media to ./cache/esd and apply config.
 ```bash
-out/bin/Generate.exe
+out/bin/WinDevGen.exe
 ```
 This must run as admin due to `dism.exe` usage.
 
 Apply config to a given iso installation media (discouraged)
 ```bash
-out/bin/Generate.exe --iso=./Win11_24H2_English_x64.iso
+out/bin/WinDevGen.exe --iso=./Win11_24H2_English_x64.iso
 ```
 
 Outputs

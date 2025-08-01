@@ -2,7 +2,7 @@
 using Schneegans.Unattend;
 using System.Drawing;
 
-namespace Generate;
+namespace WinDevGen;
 
 class Generate : BaseGenerator {
     public static void Main(string[] args) {

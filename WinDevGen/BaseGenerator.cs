@@ -2,7 +2,7 @@ using System.Xml;
 using DiscUtils.Iso9660;
 using Schneegans.Unattend;
 
-namespace Generate;
+namespace WinDevGen;
 
 abstract class BaseGenerator {
     protected string TaskbarIconsXml { get; private set; } = "";

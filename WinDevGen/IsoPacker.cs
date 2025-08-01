@@ -6,7 +6,7 @@ using System.IO.Compression; // Microsoft.PowerShell.SDK
 
 
 
-namespace Generate;
+namespace WinDevGen;
 
 public enum FileType {
     ISO,

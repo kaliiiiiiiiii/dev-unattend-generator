@@ -1,4 +1,4 @@
-namespace Generate;
+namespace WinDevGen;
 
 using System;
 using System.Collections.Generic;
