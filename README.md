@@ -54,6 +54,7 @@ Outputs
 - [cschneegans/unattend-generator](https://github.com/cschneegans/unattend-generator) the original generator
 - [kaliiiiiiiiii/unattend-generator](https://github.com/kaliiiiiiiiii/unattend-generator) my custom generator
 - [download-windows-esd](https://github.com/mattieb/download-windows-esd)
+- [windows-esd-to-iso](https://github.com/mattieb/windows-esd-to-iso)
 
 # Licences
 

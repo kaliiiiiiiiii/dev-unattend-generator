@@ -309,7 +309,9 @@ public class IsoPacker : IDisposable {
         psi.ArgumentList.Add($"/SourceImageFile:{IsoPath}");
         psi.ArgumentList.Add($"/SourceIndex:{index}");
         psi.ArgumentList.Add($"/DestinationImageFile:{outputPath}");
-        psi.ArgumentList.Add($"/Compress:{compressType}");
+        if (compressType != null) {
+            psi.ArgumentList.Add($"/Compress:{compressType}");
+        }
         if (bootable) {
             psi.ArgumentList.Add("/Bootable");
         }
