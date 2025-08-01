@@ -1,6 +1,9 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
-using System.Management.Automation; // Microsoft.PowerShell.SDK
+using System.Management.Automation;
+using System.IO.Compression; // Microsoft.PowerShell.SDK
+
 
 
 namespace Generate;
@@ -8,6 +11,18 @@ namespace Generate;
 public enum FileType {
     ISO,
     ESD,
+}
+
+public static class CompressionType {
+    public const string Fast = "fast";
+    public const string Max = "max";
+    public const string None = "none";
+    public const string Recovery = "recovery";
+
+    public const string NotSpecified = null;
+
+    public static bool IsValid(string? value) =>
+        value == Fast || value == Max || value == None || value == Recovery || value == null;
 }
 
 public class IsoPacker : IDisposable {
@@ -23,8 +38,8 @@ public class IsoPacker : IDisposable {
         IsoPath = isoPath;
 
         string extension = Path.GetExtension(IsoPath) ?? throw new Exception("Expected an extension for isoPath");
-        if (!Directory.Exists(TmpExtractPath)){Directory.CreateDirectory(TmpExtractPath);}
-            
+        if (!Directory.Exists(TmpExtractPath)) { Directory.CreateDirectory(TmpExtractPath); }
+
         switch (extension) {
             case ".iso": {
                     FileType = FileType.ISO;
@@ -41,7 +56,7 @@ public class IsoPacker : IDisposable {
                     FileType = FileType.ESD;
                     Thread.Sleep(1000); // sleep 1 second
                     try {
-                        MountEsd(IsoPath);
+                        MountEsd();
                     } catch (Exception ex) {
                         try {
                             DismountEsd(false);
@@ -225,7 +240,7 @@ public class IsoPacker : IDisposable {
             mounted = false;
         }
     }
-    public void MountEsd(string esdPath) {
+    public void MountEsd() {
         if (!mounted) {
             var psi = new ProcessStartInfo {
                 FileName = "dism.exe",
@@ -236,7 +251,7 @@ public class IsoPacker : IDisposable {
             };
 
             psi.ArgumentList.Add("/Mount-Wim");
-            psi.ArgumentList.Add($"/WimFile:{esdPath}");
+            psi.ArgumentList.Add($"/WimFile:{IsoPath}");
             psi.ArgumentList.Add("/index:1");
             psi.ArgumentList.Add($"/MountDir:{TmpExtractPath}");
 
@@ -255,7 +270,94 @@ public class IsoPacker : IDisposable {
                 throw new Exception($"ESD mount executing: {psi.FileName} {string.Join(" ", psi.ArgumentList)} failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
             }
         }
+        try {
+            // Create sources directory if it doesn't exist
+            Directory.CreateDirectory(Path.Combine(TmpExtractPath, "sources"));
+
+            // Export image 2 to boot.wim (Windows PE)
+            ExportImage(2, Path.Combine(TmpExtractPath, "sources", "boot.wim"), compressType:CompressionType.Max);
+
+            // Export image 3 to boot.wim (Windows Setup)
+            ExportImage(3, Path.Combine(TmpExtractPath, "sources", "boot.wim"), bootable: true);
+
+            // Get total image count
+            int imageCount = GetImageCount(IsoPath);
+
+            // Export remaining images (4+) to install.esd
+            for (int index = 4; index <= imageCount; index++) {
+                ExportImage(index,
+                    Path.Combine(TmpExtractPath, "sources", "install.esd"),
+                     compressType: index == 4 ? CompressionType.Recovery : null
+                );
+            }
+        } catch (Exception ex) {
+            throw new Exception($"Failed to extract ESD images: {ex.Message}", ex);
+        }
     }
+    private void ExportImage(int index, string outputPath, string? compressType = null, bool bootable = false) {
+        if (!CompressionType.IsValid(compressType))
+            throw new ArgumentException("Invalid mode");
+        var psi = new ProcessStartInfo {
+            FileName = "dism.exe",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        psi.ArgumentList.Add("/Export-Image");
+        psi.ArgumentList.Add($"/SourceImageFile:{IsoPath}");
+        psi.ArgumentList.Add($"/SourceIndex:{index}");
+        psi.ArgumentList.Add($"/DestinationImageFile:{outputPath}");
+        psi.ArgumentList.Add($"/Compress:{compressType}");
+        if (bootable) {
+            psi.ArgumentList.Add("/Bootable");
+        }
+
+        using var proc = new Process { StartInfo = psi };
+        proc.Start();
+        string output = proc.StandardOutput.ReadToEnd();
+        string error = proc.StandardError.ReadToEnd();
+        proc.WaitForExit();
+
+        if (proc.ExitCode != 0) {
+            throw new Exception($"DISM export failed (Code {proc.ExitCode})\n" +
+                               $"Command: {psi.FileName} {string.Join(" ", psi.ArgumentList)}\n" +
+                               $"Output:\n{output}\nError:\n{error}");
+        }
+    }
+
+    private static int GetImageCount(string esdPath) {
+        var psi = new ProcessStartInfo {
+            FileName = "dism.exe",
+            Arguments = $"/Get-WimInfo /WimFile:\"{esdPath}\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        using var proc = new Process { StartInfo = psi };
+        proc.Start();
+
+        string output = proc.StandardOutput.ReadToEnd();
+        string error = proc.StandardError.ReadToEnd();
+        proc.WaitForExit();
+
+        if (proc.ExitCode != 0) {
+            throw new Exception($"DISM failed with exit code {proc.ExitCode}.\nOutput:\n{output}\nError:\n{error}");
+        }
+
+        // Count how many "Index :" entries exist in the output
+        var indexCount = Regex.Matches(output, @"^\s*Index\s*:\s*\d+", RegexOptions.Multiline).Count;
+
+        if (indexCount == 0) {
+            throw new Exception("No image indices found in DISM output.\nOutput:\n" + output);
+        }
+
+        return indexCount;
+    }
+
     public void DismountEsd(bool commitChanges) {
         if (mounted) {
             var psi = new ProcessStartInfo {
