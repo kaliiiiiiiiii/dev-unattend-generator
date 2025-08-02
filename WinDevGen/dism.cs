@@ -129,7 +129,7 @@ public partial class Dism : IImgPacker {
         if (index == null && image_name == null) {
             throw new ValidationError("One of index or image_name must be provided");
         } else if (image_name != null) {
-            args.Add($"/Name{image_name}");
+            args.Add($"/Name:{image_name}");
         } else if (index != null) {
             args.Add($"/index:{index}");
         } else {
@@ -207,9 +207,9 @@ public partial class Dism : IImgPacker {
         if (sourceIndex == null && sourceName == null) {
             throw new ValidationError("One of index or image_name must be provided");
         } else if (sourceName != null) {
-            args.Add($"/SourceName{sourceName}");
+            args.Add($"/SourceName:{sourceName}");
         } else if (sourceIndex != null) {
-            args.Add($"/SourceIndex{sourceIndex}");
+            args.Add($"/SourceIndex:{sourceIndex}");
         } else {
             throw new ValidationError("index and image_name cannot be provided both");
         }
