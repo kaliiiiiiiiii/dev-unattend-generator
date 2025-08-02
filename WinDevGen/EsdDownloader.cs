@@ -41,7 +41,7 @@ public class WindowsEsdDownloader {
     public TempFile DownloadTmp(string language, string edition, string architecture) {
         string path = Download(language, edition, architecture);
         var tmpFile = new TempFile();
-        File.Copy(path, tmpFile.Path);
+        File.Copy(path, tmpFile.Path, overwrite:true);
         return tmpFile;
     }
     public string Download(string language, string edition, string architecture) {
