@@ -12,6 +12,27 @@ see [docs/config.md](docs/config.md)
 
 See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/windows/unattend-generator/usage/)
 
+## Security
+Assumes trust:
+1. This source code:)
+   1. Upstream [unattend-generator](https://github.com/cschneegans/unattend-generator) (my [fork](https://github.com/kaliiiiiiiiii/unattend-generator/tree/master))
+3. Microsoft
+   1. Installation Media from [endpoint](https://go.microsoft.com/fwlink/?LinkId=2156292) ([src](https://github.com/kaliiiiiiiiii/dev-unattend-generator/blob/master/WinDevGen/EsdDownloader.cs)) (or the provided img file)
+   2. The build environmemt (Windows)
+4. Project [dependencies](https://github.com/kaliiiiiiiiii/dev-unattend-generator/blob/master/WinDevGen/WinDevGen.csproj) (Open-Source)
+    1. [AlphaFs](https://github.com/alphaleonis/AlphaFS) (Used for ISO=>ISO)
+    2. [LTRData.DiscUtils.Iso9660](https://github.com/DiscUtils/DiscUtils/tree/develop/Library/DiscUtils.Iso9660) (Used for `singledevwin.iso`)
+    3. [Microsoft.PowerShell.SDK](https://github.com/PowerShell/PowerShell/tree/master/src/Microsoft.PowerShell.SDK) (used for ISO=>ISO)
+    4. [Xpath2](https://github.com/StefH/XPath2.Net) (Used for 1.i)
+
+#### Build from scratch
+1. Download (verify signature) and install Windows 11 based on the [official instructions](https://www.microsoft.com/en-us/software-download/windows11)
+2. Download (verify signature) and install the [Windows ADK](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install) and [dotnet](https://dotnet.microsoft.com/en-us/download)
+3. Download (verify signature) this repository ([direct url](https://github.com/kaliiiiiiiiii/dev-unattend-generator/archive/refs/heads/master.zip))
+4. Run `build.bat --publish`
+5. run `out/bin/WinDevGen.exe`
+6. flash the generated `devwin.iso` using `C:\Windows\System32\isoburn.exe`
+
 ## TODO's
 - [ ] only add required images from esd based on `ImageInfo`
 - [ ] automatically setup `Admin`, `User` and `Guest` users.
@@ -21,13 +42,14 @@ See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/wind
 - [ ] support config over [NJsonSchema](https://github.com/RicoSuter/NJsonSchema)
 - [ ] test ISO=>ISO mode
 - [ ] use empty vhd mount for ISO=>ISO mode
-- [ ] Cross-Platform, optimization: Move to [ManagedWimLib](https://github.com/ied206/ManagedWimLib/)
+- [ ] ~~Cross-Platform, optimization: Move to [ManagedWimLib](https://github.com/ied206/ManagedWimLib/)~
+- [ ] Minimize third-party dependencies. 
 
 ## Developing
 The configuration can be changed in [WinDevGen/WinDevGen.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/tree/master/WinDevGen/WinDevGen.cs)
 
 > [!Note]  
-> The language must match the ISO's language. Otherwise, windows will default to the ISO's language.
+> The language must match the ISO's language. Otherwise,` windows will default to the ISO's language.
 
 
 #### Building
