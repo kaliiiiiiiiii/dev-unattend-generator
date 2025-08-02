@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Management.Automation;
-using System.Runtime.InteropServices.Marshalling;
 using System.Text.RegularExpressions;
 
 namespace WinDevGen;

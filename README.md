@@ -13,7 +13,12 @@ see [docs/config.md](docs/config.md)
 See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/windows/unattend-generator/usage/)
 
 ## TODO's
+- [ ] only add required images from esd based on `ImageInfo`
+- [ ] automatically setup `Admin`, `User` and `Guest` users.
+- [ ] predownload chockolatey packages using [completely-offline-install](https://docs.chocolatey.org/en-us/choco/setup/#completely-offline-install)
+- [ ] Automatically ask to change passwords for created users.
 - [ ] properly cleanup on CTRL+C
+- [ ] test iso=>iso mode
 
 ## Developing
 The configuration can be changed in [WinDevGen/WinDevGen.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/tree/master/WinDevGen/WinDevGen.cs)
