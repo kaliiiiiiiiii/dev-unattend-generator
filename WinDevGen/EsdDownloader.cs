@@ -8,7 +8,7 @@ namespace WinDevGen;
 public class WindowsEsdDownloader {
     private static readonly HttpClient _httpClient = new();
     private readonly string _cacheDirectory;
-    private XDocument _xmlDoc;
+    private readonly XDocument _xmlDoc;
 
     public WindowsEsdDownloader() {
         _cacheDirectory = Path.Join(Directory.GetCurrentDirectory(), "cache/esd");
@@ -34,6 +34,12 @@ public class WindowsEsdDownloader {
            .Distinct()
            .OrderBy(x => x);
 
+    public TempFile DownloadTmp(string language, string edition, string architecture) {
+        string path = Download(language, edition, architecture);
+        var tmpFile = new TempFile();
+        File.Copy(path, tmpFile.Path);
+        return tmpFile;
+    }
     public string Download(string language, string edition, string architecture) {
         var fileXml = GetFileXml(language, edition, architecture);
         var fileName = GetElementValue(fileXml, "FileName");
@@ -51,8 +57,9 @@ public class WindowsEsdDownloader {
             string existingSha1;
             using (var existingFileStream = File.OpenRead(cacheFilePath)) {
                 existingSha1 = Convert.ToHexString(sha1.ComputeHash(existingFileStream));
-            };
-            
+            }
+            ;
+
 
             if (string.Equals(expectedSha1, existingSha1, StringComparison.OrdinalIgnoreCase)) {
                 return cacheFilePath;
@@ -63,14 +70,16 @@ public class WindowsEsdDownloader {
 
         // Download the file
         using (var responseStream = _httpClient.GetStreamAsync(fileUrl).Result) {
-			using var fileStream = File.Create(cacheFilePath);
-			responseStream.CopyTo(fileStream);
-		};
+            using var fileStream = File.Create(cacheFilePath);
+            responseStream.CopyTo(fileStream);
+        }
+        ;
         // Verify the downloaded file
         string actualSha1;
-        using (var verifyStream = File.OpenRead(cacheFilePath)){
+        using (var verifyStream = File.OpenRead(cacheFilePath)) {
             actualSha1 = Convert.ToHexString(SHA1.Create().ComputeHash(verifyStream));
-        };
+        }
+        ;
 
         if (!string.Equals(expectedSha1, actualSha1, StringComparison.OrdinalIgnoreCase)) {
             File.Delete(cacheFilePath);

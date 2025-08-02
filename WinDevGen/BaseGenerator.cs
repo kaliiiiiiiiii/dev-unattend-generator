@@ -1,86 +1,174 @@
+
 using System.Xml;
+
 using DiscUtils.Iso9660;
 using Schneegans.Unattend;
 
 namespace WinDevGen;
 
-abstract class BaseGenerator {
-    protected string TaskbarIconsXml { get; private set; } = "";
-    protected string StartPinsJson { get; private set; } = "";
-    protected string SystemScript { get; private set; } = "";
-    protected string FirstLogonScript { get; private set; } = "";
-    protected string UserOnceScript { get; private set; } = "";
-    protected string DefaultUserScript { get; private set; } = "";
-
-    public void Run(string? iso) {
-        LoadConfigFiles();
-
-        var outputDir = EnsureOutputDirectory();
-        var generator = new UnattendGenerator();
-
-        var config = GenerateSettings(generator);
+interface IImgPacker:IDisposable {
+    public string MountPath { get; }
+}
 
 
-        // throw new Exception("");
+public class BaseWinDevGen : IImgPacker {
 
-        var xml = generator.GenerateXml(config);
-        var xmlPath = WriteXmlFile(xml, outputDir);
+    public string MountPath { get; }
 
-        string singleOutISO = "singledevwin.iso";
-        string outISO = Path.Join(outputDir, "devwin.iso");
-        if (File.Exists(outISO)) { File.Delete(outISO); }
-        if (File.Exists(singleOutISO)) { File.Delete(singleOutISO); }
-        CreateIso(Path.Join(outputDir, singleOutISO), xmlPath);
+    public readonly UnattendGenerator UnattGen;
+    public readonly XmlDocument UnattendXml;
+
+    public readonly DevConfig.WinDevOpts Opts;
+
+    public readonly string ImgPath;
+
+    private readonly TempFile TmpImg;
+
+    private readonly bool FromIso;
+
+    private readonly IImgPacker Packer;
+
+    public BaseWinDevGen(DevConfig.WinDevOpts winDevOpts, string? img = null) {
+        UnattGen = winDevOpts.UnattGen;
+        if (img != null) {
+            string extension = Path.GetExtension(ImgPath) ?? throw new Exception("Expected an extension for isoPath");
+            switch (extension) {
+                case ".iso": {
+                        FromIso = true;
+                        break;
+                    }
+                case ".esd": {
+                        FromIso = false;
+                        break;
+                    }
+
+                default: {
+                        throw new Exception($"Unknown file extension: {extension}");
+                    }
+            }
+        }
+
+        if (winDevOpts.UnattConfig.TaskbarIcons is not (DefaultTaskbarIcons or EmptyTaskbarIcons)) {
+            throw new Exception("");
+        }
+        // https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/modifier/Script.cs#L68-L101
+        List<Script> scripts = [
+            new(winDevOpts.ConfigFiles.SystemScript, ScriptPhase.System, ScriptType.Ps1),
+            new Script(@"
+                Windows Registry Editor Version 5.00
+
+                [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\System]
+                ""NoLocalPasswordResetQuestions""=dword:00000001
+            ",
+            ScriptPhase.System,ScriptType.Reg),
+            new(winDevOpts.ConfigFiles.FirstLogonScript, ScriptPhase.FirstLogon, ScriptType.Ps1),
+            new(winDevOpts.ConfigFiles.UserOnceScript, ScriptPhase.UserOnce, ScriptType.Ps1),
+            new(winDevOpts.ConfigFiles.DefaultUserScript, ScriptPhase.DefaultUser, ScriptType.Ps1),
+        ];
+
+        List<Bloatware> bloatwares =
+                [
+                    winDevOpts.UnattGen.Lookup<Bloatware>("RemoveCopilot"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveOneDrive"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveSkype"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveXboxApps"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveNews"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveWeather"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveToDO"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveSolitaire"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveMaps"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveOffice365"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveFamily"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveDevHome"),
+            winDevOpts.UnattGen.Lookup<Bloatware>("RemoveBingSearch")
+                ];
+
+        foreach (var script in winDevOpts.UnattConfig.ScriptSettings.Scripts) {
+            scripts.Add(script);
+        }
+        foreach (var bloatware in winDevOpts.UnattConfig.Bloatwares) {
+            bloatwares.Add(bloatware);
+        }
+
+        winDevOpts.UnattConfig = winDevOpts.UnattConfig with {
+            ScriptSettings = new ScriptSettings(scripts, winDevOpts.UnattConfig.ScriptSettings.RestartExplorer),
+            Bloatwares = [.. bloatwares],
+            //TODO:handle when these already are configured//exist
+            TaskbarIcons = new CustomTaskbarIcons(Xml: winDevOpts.ConfigFiles.TaskbarIconsXml),
+            StartPinsSettings = new CustomStartPinsSettings(Json: winDevOpts.ConfigFiles.StartPinsJson),
+        };
+        Opts = winDevOpts;
+
+        UnattendXml = winDevOpts.UnattGen.GenerateXml(Opts.UnattConfig);
+
+
 #if __UNO__ // not on windows
-        Console.WriteLine("Generating iso is currently only supported on Windows")
 #else // on windows, continuing
+        Console.CancelKeyPress += OnCancelKeyPress;
+        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
-        if (iso == null) {
+        if (img == null) {
             var downloader = new WindowsEsdDownloader();
             string language = "en-US";
             string edition = "Professional";
-            string architecture = !config.ProcessorArchitectures.IsEmpty ? config.ProcessorArchitectures.First().ToString() : "x64";
-            iso = downloader.Download(language, edition, architecture);
+            string architecture = !Opts.UnattConfig.ProcessorArchitectures.IsEmpty ? Opts.UnattConfig.ProcessorArchitectures.First().ToString() : "x64";
+            TmpImg = downloader.DownloadTmp(language, edition, architecture);
+            img = TmpImg.Path;
+        } else {
+            TmpImg = new TempFile();
         }
-        var packer = new IsoPacker(iso);
-        try {
+        ImgPath = img;
+        if (FromIso) {
+            Packer = new UdfIso(ImgPath);
+        } else {
+            Packer = new Dism(ImgPath, as_readonly: false, mountPath: MountPath);
+        }
+        MountPath = Packer.MountPath;
+    }
+
+#endif
+    public void Pack(string isoPath) {
+        if (Packer is UdfIso packer) {
             var catalog = packer.ElToritoBootCatalog;
-            catalog?.Log();
-            WriteXmlFile(xml, packer.TmpExtractPath);
-            var newCatalog = packer.RepackTo(outISO);
+            HandleMount();
+            var newCatalog = packer.Pack(isoPath);
             newCatalog.Log();
             catalog?.ValidateBootEntriesEqual(newCatalog.Entries);
+        } else {
+            HandleMount();
+
+        }
+        UdfIso.Pack(MountPath, isoPath);
+    }
+
+    ~BaseWinDevGen() { Dispose(); }
+
+    public void Dispose() {
+        Cleanup();
+        GC.SuppressFinalize(this);
+    }
+
+    private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e) {
+        Cleanup();
+    }
+
+    private void OnProcessExit(object? sender, EventArgs e) {
+        Cleanup();
+    }
+
+    protected virtual void Cleanup() {
+        try {
+            Packer.Dispose();
         } finally {
-            packer.Dispose();
+            TmpImg.Dispose();
         }
-#endif
-
     }
 
-    private void LoadConfigFiles() {
-        TaskbarIconsXml = File.ReadAllText("config/TaskbarIcons.xml");
-        StartPinsJson = File.ReadAllText("config/StartPins.json");
-        SystemScript = File.ReadAllText("config/System.ps1");
-        FirstLogonScript = File.ReadAllText("config/FirstLogon.ps1");
-        UserOnceScript = File.ReadAllText("config/UserOnce.ps1");
-        DefaultUserScript = File.ReadAllText("config/DefaultUser.ps1");
+    public void BuildSingleIso(string isoPath) {
+        CreateSingleIso(isoPath, UnattendXml);
     }
-
-    protected static string EnsureOutputDirectory() {
-        string outputDir = Path.Join(Environment.CurrentDirectory, "out");
-        if (!Directory.Exists(outputDir)) {
-            Directory.CreateDirectory(outputDir);
-        }
-        return outputDir;
-    }
-
-    protected static string WriteXmlFile(XmlDocument xml, string outputDir) {
-        string path = Path.Join(outputDir, "autounattend.xml");
-        File.WriteAllBytes(path, UnattendGenerator.Serialize(xml));
-        return path;
-    }
-
-    protected static void CreateIso(string isoPath, string xmlPath) {
+    public static void CreateSingleIso(string isoPath, XmlDocument xml) {
+        var xmlbytes = UnattendGenerator.Serialize(xml);
 
         using FileStream isoStream = File.Create(isoPath);
         CDBuilder builder = new() {
@@ -88,9 +176,11 @@ abstract class BaseGenerator {
             VolumeIdentifier = "DEVWIN"
         };
 
-        builder.AddFile("autounattend.xml", xmlPath);
+        builder.AddFile("autounattend.xml", xmlbytes);
         builder.Build(isoStream);
     }
 
-    protected abstract Configuration GenerateSettings(UnattendGenerator generator);
+    public void HandleMount() {
+        FileUtils.WriteXml(UnattendXml, MountPath);
+    }
 }

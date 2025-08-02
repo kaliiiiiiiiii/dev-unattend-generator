@@ -1,4 +1,7 @@
+using System.Xml;
 using System.Collections.Concurrent;
+
+using Schneegans.Unattend;
 
 #if __UNO__
 #else
@@ -42,6 +45,12 @@ public sealed class TempFile() : IDisposable {
 }
 
 static class FileUtils {
+
+    public static string WriteXml(XmlDocument xml, string outputDir) {
+        string path = Path.Join(outputDir, "autounattend.xml");
+        File.WriteAllBytes(path, UnattendGenerator.Serialize(xml));
+        return path;
+    }
     public static void CopyWithMetadata(string sourceDrive, string destPath, int maxThreads = 16) {
         if (!Directory.Exists(sourceDrive))
             throw new DirectoryNotFoundException($"Source '{sourceDrive}' not found.");
