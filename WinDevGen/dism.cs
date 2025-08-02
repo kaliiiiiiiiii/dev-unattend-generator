@@ -70,7 +70,7 @@ public partial class Dism : IImgPacker {
 
     public static List<ImageInfo> GetImgInfo(string esdPath) {
         List<string> args = [
-            "Get-ImageInfo",
+            "/Get-ImageInfo",
             $"/ImageFile:{esdPath}"
         ];
 
@@ -145,7 +145,7 @@ public partial class Dism : IImgPacker {
         mountPath ??= Path.Join(Path.GetTempPath(), "dism_img_mount_" + Guid.NewGuid().ToString("N"));
 
         List<string> args = [
-            "//Unmount-Image",
+            "/Unmount-Image",
             $"/MountDir:{mountPath}",
             commit ? "/commit" : "/discard"
             ];
