@@ -23,7 +23,7 @@ public partial class Dism : IImgPacker {
         public required int Index;
         public required string Name;
         public required string Description;
-        public required int Size;
+        public required long Size;
     }
 
     public string ImgPath { get; }
@@ -35,6 +35,8 @@ public partial class Dism : IImgPacker {
 
     public readonly bool ReadOnly;
     public readonly bool CommitOnDispose;
+
+    private bool disposed = false;
 
     public Dism(string imgPath, bool as_esd = false, int? index = 1, string? image_name = null, bool as_readonly = true, string? mountPath = null, bool commitOnDispose = false) {
         ImgPath = imgPath;
@@ -54,9 +56,14 @@ public partial class Dism : IImgPacker {
 
     public void Dispose() {
         Cleanup();
-        Console.CancelKeyPress -= OnCancelKeyPress;
-        AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
-        GC.SuppressFinalize(this);
+
+        if (!disposed) {
+            Console.CancelKeyPress -= OnCancelKeyPress;
+            AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
+            disposed = true;
+            GC.SuppressFinalize(this);
+            
+        }
     }
 
     private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e) {
@@ -92,7 +99,7 @@ public partial class Dism : IImgPacker {
                     Index = int.Parse(match.Groups[1].Value),
                     Name = match.Groups[2].Value.Trim(),
                     Description = match.Groups[3].Value.Trim(),
-                    Size = int.Parse(match.Groups[4].Value.Replace(",", ""))
+                    Size = long.Parse(match.Groups[4].Value.Replace(",", ""))
                 });
             }
         }

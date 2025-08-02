@@ -15,6 +15,7 @@ class Generate {
         outDir ??= Path.Join(Environment.CurrentDirectory, "out");
         string? cfgDir = null;
         cfgDir ??= Path.Join(Environment.CurrentDirectory, "config");
+        string esdCacheDirectory = Path.Join(Directory.GetCurrentDirectory(), "cache/esd");
 
         string outISO = Path.Join(outDir, "devwin.iso");
         string singleOutISO = Path.Join(outDir, "singledevwin.iso"); ;
@@ -33,7 +34,7 @@ class Generate {
                 }
             };
 
-			using var generator = new BaseWinDevGen(opts, img: iso);
+			using var generator = new BaseWinDevGen(opts, esdCacheDirectory, img: iso);
 			generator.BuildSingleIso(singleOutISO);
 			if (File.Exists(outISO)) { File.Delete(outISO); }
 			generator.Pack(outISO);

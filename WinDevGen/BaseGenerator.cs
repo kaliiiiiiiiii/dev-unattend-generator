@@ -6,7 +6,7 @@ using Schneegans.Unattend;
 
 namespace WinDevGen;
 
-interface IImgPacker:IDisposable {
+interface IImgPacker : IDisposable {
     public string MountPath { get; }
 }
 
@@ -28,7 +28,9 @@ public class BaseWinDevGen : IImgPacker {
 
     private readonly IImgPacker Packer;
 
-    public BaseWinDevGen(DevConfig.WinDevOpts winDevOpts, string? img = null) {
+    private bool disposed = false;
+
+    public BaseWinDevGen(DevConfig.WinDevOpts winDevOpts, string esdCacheDireactory, string? img = null) {
         UnattGen = winDevOpts.UnattGen;
         if (img != null) {
             string extension = Path.GetExtension(ImgPath) ?? throw new Exception("Expected an extension for isoPath");
@@ -108,7 +110,7 @@ public class BaseWinDevGen : IImgPacker {
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
         if (img == null) {
-            var downloader = new WindowsEsdDownloader();
+            var downloader = new WindowsEsdDownloader(esdCacheDireactory);
             string language = "en-US";
             string edition = "Professional";
             string architecture = !Opts.UnattConfig.ProcessorArchitectures.IsEmpty ? Opts.UnattConfig.ProcessorArchitectures.First().ToString() : "x64";
@@ -145,9 +147,13 @@ public class BaseWinDevGen : IImgPacker {
 
     public void Dispose() {
         Cleanup();
-        Console.CancelKeyPress -= OnCancelKeyPress;
-        AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
-        GC.SuppressFinalize(this);
+
+        if (!disposed) {
+            Console.CancelKeyPress -= OnCancelKeyPress;
+            AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
+            disposed = true;
+            GC.SuppressFinalize(this);
+        }
     }
 
     private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e) {

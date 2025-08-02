@@ -7,12 +7,12 @@ namespace WinDevGen;
 
 public class WindowsEsdDownloader {
     private static readonly HttpClient _httpClient = new();
-    private readonly string _cacheDirectory;
+    public readonly string CacheDirectory;
     private readonly XDocument XmlDoc;
 
-    public WindowsEsdDownloader() {
-        _cacheDirectory = Path.Join(Directory.GetCurrentDirectory(), "cache/esd");
-        Directory.CreateDirectory(_cacheDirectory); // Ensure cache directory exists
+    public WindowsEsdDownloader(string cacheDirectory) {
+        CacheDirectory = cacheDirectory;
+        Directory.CreateDirectory(CacheDirectory); // Ensure cache directory exists
         using var task = _httpClient.GetByteArrayAsync("https://go.microsoft.com/fwlink/?LinkId=2156292");
         task.Wait();
         byte[] xmlBytes = CabParser.ExtractFile(task.Result, "products.xml");
@@ -40,7 +40,7 @@ public class WindowsEsdDownloader {
 
     public TempFile DownloadTmp(string language, string edition, string architecture) {
         string path = Download(language, edition, architecture);
-        var tmpFile = new TempFile();
+        var tmpFile = new TempFile(extension:".esd");
         File.Copy(path, tmpFile.Path, overwrite:true);
         return tmpFile;
     }
@@ -52,7 +52,7 @@ public class WindowsEsdDownloader {
 
         // cache file name: {original_name}-{language}-{edition}-{architecture}-{sha1}.esd
         var cacheFileName = $"{Path.GetFileNameWithoutExtension(fileName)}-{language}-{edition}-{architecture}-{expectedSha1}.esd";
-        var cacheFilePath = Path.Join(_cacheDirectory, cacheFileName);
+        var cacheFilePath = Path.Join(CacheDirectory, cacheFileName);
 
         // Check if file already exists in cache
         if (File.Exists(cacheFilePath)) {

@@ -11,6 +11,7 @@ public class UdfIso : IImgPacker {
     public string MountPath { get; }
 
     public readonly bool Readonly;
+    private bool disposed = false;
 
     public UdfIso(string isoPath, bool as_readonly = true, string? mountPath = null) {
         IsoPath = isoPath;
@@ -27,9 +28,13 @@ public class UdfIso : IImgPacker {
 
     public void Dispose() {
         Cleanup();
-        Console.CancelKeyPress -= OnCancelKeyPress;
-        AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
-        GC.SuppressFinalize(this);
+
+        if (!disposed) {
+            Console.CancelKeyPress -= OnCancelKeyPress;
+            AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
+            disposed = true;
+            GC.SuppressFinalize(this);
+        }
     }
 
     private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e) {
@@ -44,7 +49,7 @@ public class UdfIso : IImgPacker {
         if (Readonly) {
             Unmount(IsoPath);
         } else {
-            FileUtils.DeleteDirectory( MountPath);
+            FileUtils.DeleteDirectory(MountPath);
         }
     }
 
