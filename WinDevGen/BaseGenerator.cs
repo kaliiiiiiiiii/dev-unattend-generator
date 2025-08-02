@@ -121,7 +121,7 @@ public class BaseWinDevGen : IImgPacker {
         if (FromIso) {
             Packer = new UdfIso(ImgPath);
         } else {
-            Packer = new Dism(ImgPath, as_readonly: false, mountPath: MountPath);
+            Packer = new Dism(ImgPath, as_esd: true, mountPath: MountPath);
         }
         MountPath = Packer.MountPath;
     }

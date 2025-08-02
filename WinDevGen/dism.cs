@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Management.Automation;
 using System.Text.RegularExpressions;
 
 namespace WinDevGen;
@@ -35,14 +36,18 @@ public partial class Dism : IImgPacker {
     public readonly bool ReadOnly;
     public readonly bool CommitOnDispose;
 
-    public Dism(string imgPath, int? index = 1, string? image_name = null, bool as_readonly = true, string? mountPath = null, bool commitOnDispose = false) {
+    public Dism(string imgPath, bool as_esd = false, int? index = 1, string? image_name = null, bool as_readonly = true, string? mountPath = null, bool commitOnDispose = false) {
         ImgPath = imgPath;
         ReadOnly = as_readonly;
         CommitOnDispose = commitOnDispose;
-        MountPath = MountImg(imgPath, index: index, image_name: image_name, as_readonly: as_readonly, mountPath: mountPath);
-
         Console.CancelKeyPress += OnCancelKeyPress;
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+
+        if (as_esd) {
+            MountPath = MountEsdMedia(imgPath, mountPath);
+        } else {
+            MountPath = MountImg(imgPath, index: index, image_name: image_name, as_readonly: as_readonly, mountPath: mountPath);
+        }
     }
 
     ~Dism() { Dispose(); }
@@ -61,7 +66,7 @@ public partial class Dism : IImgPacker {
     }
 
     protected virtual void Cleanup() {
-        UnmountImg(MountPath, commit:CommitOnDispose);
+        UnmountImg(MountPath, commit: CommitOnDispose);
     }
 
     // https://regex101.com/r/WJrdDG/1
@@ -212,7 +217,7 @@ public partial class Dism : IImgPacker {
         Cmd(args);
     }
 
-    public static void MountEsdMedia(string imgPath, string? mountPath) {
+    public static string MountEsdMedia(string imgPath, string? mountPath) {
         mountPath ??= Path.Join(Path.GetTempPath(), "dism_img_mount_" + Guid.NewGuid().ToString("N"));
         if (!Directory.Exists(mountPath)) {
             Directory.CreateDirectory(mountPath);
@@ -247,5 +252,6 @@ public partial class Dism : IImgPacker {
             }
             throw;
         }
+        return mountPath;
     }
 }
