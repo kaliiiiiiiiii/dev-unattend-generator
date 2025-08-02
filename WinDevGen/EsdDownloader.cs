@@ -8,28 +8,32 @@ namespace WinDevGen;
 public class WindowsEsdDownloader {
     private static readonly HttpClient _httpClient = new();
     private readonly string _cacheDirectory;
-    private readonly XDocument _xmlDoc;
+    private readonly XDocument XmlDoc;
 
     public WindowsEsdDownloader() {
         _cacheDirectory = Path.Join(Directory.GetCurrentDirectory(), "cache/esd");
         Directory.CreateDirectory(_cacheDirectory); // Ensure cache directory exists
-        _xmlDoc = GetProductsXml();
+        using var task = _httpClient.GetByteArrayAsync("https://go.microsoft.com/fwlink/?LinkId=2156292");
+        task.Wait();
+        byte[] xmlBytes = CabParser.ExtractFile(task.Result, "products.xml");
+        using var stream = new MemoryStream(xmlBytes);
+        XmlDoc = XDocument.Load(stream);
     }
 
     public IEnumerable<string> Languages =>
-    _xmlDoc.XPath2SelectValues("//File/LanguageCode")
+    XmlDoc.XPath2SelectValues("//File/LanguageCode")
            .Cast<string>()
            .Distinct()
            .OrderBy(x => x);
 
     public IEnumerable<string> GetEditions(string language) =>
-        _xmlDoc.XPath2SelectValues($"//File/Edition")
+        XmlDoc.XPath2SelectValues($"//File/Edition")
             .Cast<string>()
            .Distinct()
            .OrderBy(x => x);
 
     public IEnumerable<string> GetArchitectures() =>
-        _xmlDoc.XPath2SelectValues($"//File/Architecture")
+        XmlDoc.XPath2SelectValues($"//File/Architecture")
             .Cast<string>()
            .Distinct()
            .OrderBy(x => x);
@@ -98,14 +102,6 @@ public class WindowsEsdDownloader {
         return GetElementValue(fileXml, "FilePath");
     }
 
-    private static XDocument GetProductsXml() {
-        using var task = _httpClient.GetByteArrayAsync("https://go.microsoft.com/fwlink/?LinkId=2156292");
-        task.Wait();
-        byte[] xmlBytes = CabParser.ExtractFile(task.Result, "products.xml");
-        using var stream = new MemoryStream(xmlBytes);
-        return XDocument.Load(stream);
-    }
-
     private XElement GetFileXml(string language, string edition, string architecture) {
         if (string.Equals(architecture, "amd64", StringComparison.OrdinalIgnoreCase)) {
             architecture = "x64";
@@ -116,7 +112,7 @@ public class WindowsEsdDownloader {
   matches(Edition, '^{RegEsc(edition)}$', 'i') and
   matches(Architecture, '^{RegEsc(architecture)}$', 'i')
 ]";
-        return _xmlDoc.XPath2SelectElement($"//File{param}")
+        return XmlDoc.XPath2SelectElement($"//File{param}")
             ?? throw new ArgumentException($"No matching file found for the specified parameters: \n{param}");
     }
 

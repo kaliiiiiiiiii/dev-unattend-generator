@@ -25,11 +25,11 @@ class Generate {
                 UnattConfig = DevConfig.DefaultUnattConfig,
                 ConfigFiles = new DevConfig.ConfigFiles {
                     TaskbarIconsXml = File.ReadAllText(Path.Join(cfgDir,"TaskbarIcons.xml")),
-                    StartPinsJson = File.ReadAllText(Path.Join(cfgDir,"config/StartPins.json")),
-                    SystemScript = File.ReadAllText(Path.Join(cfgDir,"config/System.ps1")),
-                    FirstLogonScript = File.ReadAllText(Path.Join(cfgDir,"config/FirstLogon.ps1")),
-                    UserOnceScript = File.ReadAllText(Path.Join(cfgDir,"config/UserOnce.ps1")),
-                    DefaultUserScript = File.ReadAllText(Path.Join(cfgDir,"config/DefaultUser.ps1")),
+                    StartPinsJson = File.ReadAllText(Path.Join(cfgDir,"StartPins.json")),
+                    SystemScript = File.ReadAllText(Path.Join(cfgDir,"System.ps1")),
+                    FirstLogonScript = File.ReadAllText(Path.Join(cfgDir,"FirstLogon.ps1")),
+                    UserOnceScript = File.ReadAllText(Path.Join(cfgDir,"UserOnce.ps1")),
+                    DefaultUserScript = File.ReadAllText(Path.Join(cfgDir,"DefaultUser.ps1")),
                 }
             };
 

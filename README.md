@@ -15,7 +15,7 @@ See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/wind
 ## TODO's
 
 ## Developing
-The configuration can be changed in [WinDevGen/WinDevGen.cs]()
+The configuration can be changed in [WinDevGen/WinDevGen.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/tree/master/WinDevGen/WinDevGen.cs)
 
 > [!Note]  
 > The language must match the ISO's language. Otherwise, windows will default to the ISO's language.
