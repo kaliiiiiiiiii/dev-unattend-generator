@@ -145,6 +145,8 @@ public class BaseWinDevGen : IImgPacker {
 
     public void Dispose() {
         Cleanup();
+        Console.CancelKeyPress -= OnCancelKeyPress;
+        AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
         GC.SuppressFinalize(this);
     }
 

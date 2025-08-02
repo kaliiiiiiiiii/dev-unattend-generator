@@ -19,30 +19,40 @@ public sealed class TempDirectory : IDisposable {
     }
 
     public void Dispose() {
-        try {
-            if (Directory.Exists(Path)) {
-                FileUtils.DeleteDirectory(Path);
-            }
-        } catch {
-            // Suppress cleanup errors
+        if (Directory.Exists(Path)) {
+            FileUtils.DeleteDirectory(Path);
         }
     }
 }
 
 // Disposable temporary file wrapper
-public sealed class TempFile() : IDisposable {
-    public string Path { get; } = System.IO.Path.GetTempFileName();
+public sealed class TempFile : IDisposable {
+    public string Path { get; }
+
+    public TempFile(string? extension = null) {
+        string tempFile = System.IO.Path.GetTempFileName();
+
+        if (!string.IsNullOrWhiteSpace(extension)) {
+            if (!extension.StartsWith("."))
+                extension = "." + extension;
+
+            string newPath = System.IO.Path.ChangeExtension(tempFile, extension);
+
+            // Rename the temp file to have the specified extension
+            File.Move(tempFile, newPath);
+            Path = newPath;
+        } else {
+            Path = tempFile;
+        }
+    }
 
     public void Dispose() {
-        try {
-            if (File.Exists(Path)) {
-                File.Delete(Path);
-            }
-        } catch {
-            // Suppress cleanup errors
+        if (File.Exists(Path)) {
+            File.Delete(Path);
         }
     }
 }
+
 
 static class FileUtils {
 
