@@ -21,6 +21,7 @@ See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/wind
 - [ ] support config over [NJsonSchema](https://github.com/RicoSuter/NJsonSchema)
 - [ ] test ISO=>ISO mode
 - [ ] use empty vhd mount for ISO=>ISO mode
+- [ ] Cross-Platform, optimization: Move to [ManagedWimLib](https://github.com/ied206/ManagedWimLib/)
 
 ## Developing
 The configuration can be changed in [WinDevGen/WinDevGen.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/tree/master/WinDevGen/WinDevGen.cs)
