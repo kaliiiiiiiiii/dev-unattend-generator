@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Management.Automation;
+using System.Runtime.InteropServices.Marshalling;
 using System.Text.RegularExpressions;
 
 namespace WinDevGen;
@@ -42,9 +43,6 @@ public partial class Dism : IImgPacker {
         ImgPath = imgPath;
         ReadOnly = as_readonly;
         CommitOnDispose = commitOnDispose;
-        Console.CancelKeyPress += OnCancelKeyPress;
-        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
-
         if (as_esd) {
             MountPath = MountEsdMedia(imgPath, mountPath);
         } else {
@@ -58,8 +56,6 @@ public partial class Dism : IImgPacker {
         Cleanup();
 
         if (!disposed) {
-            Console.CancelKeyPress -= OnCancelKeyPress;
-            AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
             disposed = true;
             GC.SuppressFinalize(this);
             
@@ -88,7 +84,7 @@ public partial class Dism : IImgPacker {
             $"/ImageFile:{esdPath}"
         ];
 
-        string output = Cmd(args);
+        string output = Cmd(args).OutPut;
 
         var matches = ImageInfoRegex().Matches(output);
         var imageInfos = new List<ImageInfo>();
@@ -118,7 +114,7 @@ public partial class Dism : IImgPacker {
         }
         List<string> args = [
             "/Mount-Image",
-            $"/WimFile:{imgPath}",
+            $"/ImageFile:{imgPath}",
             $"/MountDir:{mountPath}"
                 ];
 
@@ -143,6 +139,7 @@ public partial class Dism : IImgPacker {
             } catch { // directory isn't empty
                 try {
                     UnmountImg(mountPath, commit: false);
+                    FileUtils.DeleteDirectory(mountPath);
                 } catch {
                     Console.Error.WriteLine($"{ex.Message}{ex.StackTrace}");
                     Console.Error.WriteLine($"Durning the handling of this exception, another exception occurred:");
@@ -150,11 +147,12 @@ public partial class Dism : IImgPacker {
                 }
                 throw;
             }
+            throw;
 
         }
         return mountPath;
     }
-    public static string UnmountImg(string mountPath, bool commit = false) {
+    public static void UnmountImg(string mountPath, bool commit = false) {
         // https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-image-management-command-line-options-s14?view=windows-11#unmount-image
         mountPath ??= Path.Join(Path.GetTempPath(), "dism_img_mount_" + Guid.NewGuid().ToString("N"));
 
@@ -163,10 +161,11 @@ public partial class Dism : IImgPacker {
             $"/MountDir:{mountPath}",
             commit ? "/commit" : "/discard"
             ];
-        Cmd(args);
-        return mountPath;
+        // The provider VHDManager does not support CreateDismImage on C:// ...
+        // assumption: file dosen't exist
+        Cmd(args, [50]);
     }
-    public static string Cmd(List<string> args) {
+    public static (string OutPut ,int ExitCode) Cmd(List<string> args, List<int>? okExitCodes = null) {
         // https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-image-management-command-line-options-s14?view=windows-11
         var psi = new ProcessStartInfo {
             FileName = "dism.exe",
@@ -189,10 +188,11 @@ public partial class Dism : IImgPacker {
 
         if (proc.ExitCode == 740) {
             throw new Exception("dism requires elevated privileges");
+        } else if (okExitCodes != null && okExitCodes.Contains(proc.ExitCode)){
         } else if (proc.ExitCode != 0) {
             throw new Exception($"Executing: {psi.FileName} {string.Join(" ", psi.ArgumentList)} failed (Code {proc.ExitCode})\nOutput:\n{output}\nError:\n{error}");
         }
-        return output;
+        return (output, proc.ExitCode);
     }
     public static void ExportImg(string imagePath, string destImg, int? sourceIndex = 1, string? sourceName = null, string? destName = null, string? compressType = null, bool bootable = false) {
         // https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-image-management-command-line-options-s14?view=windows-11#export-image

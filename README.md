@@ -13,6 +13,7 @@ see [docs/config.md](docs/config.md)
 See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/windows/unattend-generator/usage/)
 
 ## TODO's
+- [ ] properly cleanup on CTRL+C
 
 ## Developing
 The configuration can be changed in [WinDevGen/WinDevGen.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/tree/master/WinDevGen/WinDevGen.cs)

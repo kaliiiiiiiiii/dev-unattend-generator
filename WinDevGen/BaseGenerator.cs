@@ -106,8 +106,6 @@ public class BaseWinDevGen : IImgPacker {
 
 #if __UNO__ // not on windows
 #else // on windows, continuing
-        Console.CancelKeyPress += OnCancelKeyPress;
-        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
         if (img == null) {
             var downloader = new WindowsEsdDownloader(esdCacheDireactory);
@@ -149,8 +147,6 @@ public class BaseWinDevGen : IImgPacker {
         Cleanup();
 
         if (!disposed) {
-            Console.CancelKeyPress -= OnCancelKeyPress;
-            AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
             disposed = true;
             GC.SuppressFinalize(this);
         }

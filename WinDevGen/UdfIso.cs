@@ -19,9 +19,6 @@ public class UdfIso : IImgPacker {
 
         ElToritoBootCatalog = ElToritoParser.ParseElToritoData(IsoPath);
         MountPath = Mount(isoPath, as_readonly: as_readonly, mountPath: mountPath);
-
-        Console.CancelKeyPress += OnCancelKeyPress;
-        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
     }
 
     ~UdfIso() { Dispose(); }
@@ -30,8 +27,6 @@ public class UdfIso : IImgPacker {
         Cleanup();
 
         if (!disposed) {
-            Console.CancelKeyPress -= OnCancelKeyPress;
-            AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
             disposed = true;
             GC.SuppressFinalize(this);
         }
