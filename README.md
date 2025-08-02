@@ -18,6 +18,7 @@ See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/wind
 - [ ] predownload chockolatey packages using [completely-offline-install](https://docs.chocolatey.org/en-us/choco/setup/#completely-offline-install)
 - [ ] Automatically ask to change passwords for created users.
 - [ ] properly cleanup on CTRL+C
+- [ ] support config over [NJsonSchema](https://github.com/RicoSuter/NJsonSchema)
 - [ ] test ISO=>ISO mode
 - [ ] use empty vhd mount for ISO=>ISO mode
 
