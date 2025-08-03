@@ -42,7 +42,7 @@ Assumes trust:
 - [ ] support config over [NJsonSchema](https://github.com/RicoSuter/NJsonSchema)
 - [ ] test ISO=>ISO mode
 - [ ] use empty vhd mount for ISO=>ISO mode
-- [ ] ~~Cross-Platform, optimization: Move to [ManagedWimLib](https://github.com/ied206/ManagedWimLib/)~
+- [ ] ~~Cross-Platform, optimization: Move to [ManagedWimLib](https://github.com/ied206/ManagedWimLib/)~~
 - [ ] Minimize third-party dependencies. 
 
 ## Developing
