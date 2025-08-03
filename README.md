@@ -81,6 +81,18 @@ Outputs
 - `out/autounattend.xml` - the config xml
 - `out/singledevwin.iso` - an iso containing autounattend.xml
 - `out/devwin.iso`- a full installation media
+
+## Known Bugs
+
+#### Dism fails on GH actions
+```bash
+dism.exe /Mount-Image /ImageFile:C:\Users\runneradmin\AppData\Local\Temp\tmpv0c0u2.esd /MountDir:C:\Users\runneradmin\AppData\Local\Temp\dism_img_mount_713b9d2e2c624d6a888e2ced0285c133 /ReadOnly /index:1
+Error: 11
+An attempt was made to load a program with an incorrect format.
+dism.cs:line 133
+dism.cs:line 234
+dism.cs:line 45
+```
 # References
 - [cschneegans/unattend-generator](https://github.com/cschneegans/unattend-generator) the original generator
 - [kaliiiiiiiiii/unattend-generator](https://github.com/kaliiiiiiiiii/unattend-generator) my custom generator
