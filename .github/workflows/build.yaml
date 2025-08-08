@@ -25,9 +25,19 @@ jobs:
       - name: Build Generator.exe (Release)
         run: .\\build.bat --publish
 
-      - name: Run Generator.exe to generate XML
+      - name: Run Generator.exe to generate XML and iso
         run: ./out/bin/WinDevGen.exe
         shell: pwsh
+      
+      - name: cat dism.log
+        if: ${{ failure() }}
+        shell: pwsh
+        run: |
+          if (Test-Path "C:\Windows\Logs\DISM\dism.log") {
+            Get-Content "C:\Windows\Logs\DISM\dism.log" -Tail 300
+          } else {
+            Write-Host "DISM log not found."
+          }
 
       - name: Create zip
         id: tagrename

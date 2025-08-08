@@ -25,24 +25,25 @@ class Generate {
                 UnattGen = new UnattendGenerator(),
                 UnattConfig = DevConfig.DefaultUnattConfig,
                 ConfigFiles = new DevConfig.ConfigFiles {
-                    TaskbarIconsXml = File.ReadAllText(Path.Join(cfgDir,"TaskbarIcons.xml")),
-                    StartPinsJson = File.ReadAllText(Path.Join(cfgDir,"StartPins.json")),
-                    SystemScript = File.ReadAllText(Path.Join(cfgDir,"System.ps1")),
-                    FirstLogonScript = File.ReadAllText(Path.Join(cfgDir,"FirstLogon.ps1")),
-                    UserOnceScript = File.ReadAllText(Path.Join(cfgDir,"UserOnce.ps1")),
-                    DefaultUserScript = File.ReadAllText(Path.Join(cfgDir,"DefaultUser.ps1")),
+                    TaskbarIconsXml = File.ReadAllText(Path.Join(cfgDir, "TaskbarIcons.xml")),
+                    StartPinsJson = File.ReadAllText(Path.Join(cfgDir, "StartPins.json")),
+                    SystemScript = File.ReadAllText(Path.Join(cfgDir, "System.ps1")),
+                    FirstLogonScript = File.ReadAllText(Path.Join(cfgDir, "FirstLogon.ps1")),
+                    UserOnceScript = File.ReadAllText(Path.Join(cfgDir, "UserOnce.ps1")),
+                    DefaultUserScript = File.ReadAllText(Path.Join(cfgDir, "DefaultUser.ps1")),
                 }
             };
 
-			using var generator = new BaseWinDevGen(opts, esdCacheDirectory, img: iso);
-			generator.BuildSingleIso(singleOutISO);
-			if (File.Exists(outISO)) { File.Delete(outISO); }
-			generator.Pack(outISO);
+            using var generator = new BaseWinDevGen(opts, esdCacheDirectory, img: iso);
+            generator.BuildSingleIso(singleOutISO);
+            if (File.Exists(outISO)) { File.Delete(outISO); }
+            generator.Pack(outISO);
 
-		} catch (Exception ex) {
+        } catch (Exception ex) {
             Console.Error.WriteLine($"{ex.Message}{ex.StackTrace}");
             Console.WriteLine("Press ENTER to exit");
             Console.ReadLine();
+            throw;
         }
 
     }

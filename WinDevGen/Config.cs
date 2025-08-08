@@ -53,7 +53,24 @@ public static class DevConfig {
                             displayName: "Switzerland"
                         ) // switzerland
                 ),
-        AccountSettings: new InteractiveLocalAccountSettings(),
+        AccountSettings: new UnattendedAccountSettings(
+            [
+                new Account(
+                    name:"User",
+                    displayName:"User",
+                    password:"",
+                    group:"Users"
+                ),
+                new Account(
+                    name:"Admin",
+                    displayName:"Admin",
+                    password:"",
+                    group:"Administrator"
+                )
+            ],
+            new OwnAutoLogonSettings(),
+            obscurePasswords:false
+        ),
         PartitionSettings: new InteractivePartitionSettings(),
         InstallFromSettings: new AutomaticInstallFromSettings(),
         DiskAssertionSettings: new SkipDiskAssertionSettings(),
@@ -125,6 +142,7 @@ public static class DevConfig {
         VBoxGuestAdditions: false,
         VMwareTools: false,
         VirtIoGuestTools: false,
+        ParallelsTools:false,
         PreventDeviceEncryption: false,
         ClassicContextMenu: true,
         LeftTaskbar: false,
