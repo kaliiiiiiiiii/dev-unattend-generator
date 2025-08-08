@@ -59,13 +59,13 @@ public static class DevConfig {
                     name:"User",
                     displayName:"User",
                     password:"",
-                    group:"Users"
+                    group:Constants.UsersGroup
                 ),
                 new Account(
                     name:"Admin",
                     displayName:"Admin",
                     password:"",
-                    group:"Administrator"
+                    group:Constants.AdministratorsGroup
                 )
             ],
             new OwnAutoLogonSettings(),
