@@ -16,6 +16,7 @@ See [schneegans.de/windows/unattend-generator/usage/](https://schneegans.de/wind
 Assumes trust:
 1. This source code:)
    1. Upstream [unattend-generator](https://github.com/cschneegans/unattend-generator) (my [fork](https://github.com/kaliiiiiiiiii/unattend-generator/tree/master))
+      	1. sub-dependency [Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json) declared in [UnattendGenerator.csproj](https://github.com/kaliiiiiiiiii/unattend-generator/blob/master/UnattendGenerator.csproj)
 3. Microsoft
    1. Installation Media from [endpoint](https://go.microsoft.com/fwlink/?LinkId=2156292) ([src](https://github.com/kaliiiiiiiiii/dev-unattend-generator/blob/master/WinDevGen/EsdDownloader.cs)) (or the provided img file)
    2. The build environmemt (Windows)
