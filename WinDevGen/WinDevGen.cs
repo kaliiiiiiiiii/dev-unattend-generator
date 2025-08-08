@@ -18,7 +18,8 @@ class Generate {
         string esdCacheDirectory = Path.Join(Directory.GetCurrentDirectory(), "cache/esd");
 
         string outISO = Path.Join(outDir, "devwin.iso");
-        string singleOutISO = Path.Join(outDir, "singledevwin.iso"); ;
+        string singleOutISO = Path.Join(outDir, "singledevwin.iso");
+        string outXML = Path.Join(outDir, "autounattend.xml");
 
         try {
             var opts = new DevConfig.WinDevOpts {
@@ -35,6 +36,7 @@ class Generate {
             };
 
             using var generator = new BaseWinDevGen(opts, esdCacheDirectory, img: iso);
+            FileUtils.WriteXml(generator.UnattendXml, outXML);
             generator.BuildSingleIso(singleOutISO);
             if (File.Exists(outISO)) { File.Delete(outISO); }
             generator.Pack(outISO);

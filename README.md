@@ -35,16 +35,24 @@ Assumes trust:
 6. flash the generated `devwin.iso` using `C:\Windows\System32\isoburn.exe`
 
 ## TODO's
-- [ ] only add required images from esd based on `ImageInfo`
 - [ ] automatically setup `Admin`, `User` and `Guest` users.
-- [ ] predownload chockolatey packages using [completely-offline-install](https://docs.chocolatey.org/en-us/choco/setup/#completely-offline-install)
-- [ ] Automatically ask to change passwords for created users.
-- [ ] properly cleanup on CTRL+C
-- [ ] support config over [NJsonSchema](https://github.com/RicoSuter/NJsonSchema)
-- [ ] test ISO=>ISO mode
-- [ ] use empty vhd mount for ISO=>ISO mode
-- [ ] ~~Cross-Platform, optimization: Move to [ManagedWimLib](https://github.com/ied206/ManagedWimLib/)~~
-- [ ] Minimize third-party dependencies. 
+
+- [ ] Move to [ManagedDism](https://github.com/jeffkl/ManagedDism)
+- [ ] remove unattend-generator dependency
+   - [ ] apply reg already in image using [reg load](https://www.tenforums.com/customization/92826-edit-registry-mounted-wim.html#post1131369)
+      - [ ] system-wide dark-mode
+   - [ ] debloat in wim image using [Remove-WindowsPackage](https://learn.microsoft.com/en-us/powershell/module/dism/remove-windowspackage?view=windowsserver2025-ps)
+- Features
+   - [ ] predownload chockolatey packages using [completely-offline-install](https://docs.chocolatey.org/en-us/choco/setup/#completely-offline-install)
+   - [ ] Automatically ask to change passwords for created users.
+- Optimization
+   - [ ] properly cleanup on CTRL+C
+   - [ ] support config over [NJsonSchema](https://github.com/RicoSuter/NJsonSchema)
+   - [ ] Remove [AlphaFs](https://github.com/alphaleonis/AlphaFS) dependency (use empty vhd mount for ISO=>ISO mode)
+- [ ] Fastinstall
+   - [ ] Preinstall to disk [QEMU](https://gitlab.com/qemu-project/qemu/)
+   - [ ] capture using [Dism /Capture-Image](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-image-management-command-line-options-s14?view=windows-11#capture-image) on a mounted disk
+   - [ ] create WinPE iso using [Copype.cmd](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/copype-command-line-options?view=windows-11) and [Makewinpemedia](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/makewinpemedia-command-line-options?view=windows-11) running select-image, then select-partition (optionally launch diskpart) [DISM.exe /Apply-Image](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/dism-image-management-command-line-options-s14?view=windows-11#apply-image) in [\Windows\System32\Startnet.cmd](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/winpe-mount-and-customize?view=windows-11#add-a-startup-script) 
 
 ## Developing
 The configuration can be changed in [WinDevGen/WinDevGen.cs](https://github.com/kaliiiiiiiiii/dev-unattend-generator/tree/master/WinDevGen/WinDevGen.cs)
@@ -88,11 +96,10 @@ Outputs
 #### Dism fails on GH actions
 ```bash
 dism.exe /Mount-Image /ImageFile:C:\Users\runneradmin\AppData\Local\Temp\tmpv0c0u2.esd /MountDir:C:\Users\runneradmin\AppData\Local\Temp\dism_img_mount_713b9d2e2c624d6a888e2ced0285c133 /ReadOnly /index:1
-Error: 11
-An attempt was made to load a program with an incorrect format.
-dism.cs:line 133
-dism.cs:line 234
-dism.cs:line 45
+
+ DISM WIM Provider: PID=4620 [ReadWimHeader:(1908) -> header version mismatch] C:\Users\runneradmin\AppData\Local\Temp\tmpapkwtv.esd (HRESULT=0x8007000B) - CWimManager::WimProviderMsgLogCallback
+ DISM WIM Provider: PID=4620 [WIMCreateFile:(419) -> Fail to read WIM header] C:\Users\runneradmin\AppData\Local\Temp\tmpapkwtv.esd (HRESULT=0x8007000B) - CWimManager::WimProviderMsgLogCallback
+2025-08-08 20:28:40, Error                 DISM   DISM WIM Provider: PID=4620 TID=8088 "WIM open failed." - CWimImageInfo::Mount(hr:0x8007000b)
 ```
 # References
 - [cschneegans/unattend-generator](https://github.com/cschneegans/unattend-generator) the original generator

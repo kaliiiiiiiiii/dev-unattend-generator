@@ -40,11 +40,13 @@ jobs:
           }
 
       - name: Create zip
+        if: ${{ always() }}
         id: tagrename
         run: Compress-Archive -Path "./out/bin" -DestinationPath "./out/WinDevGen-${{ github.event.release.tag_name }}.zip"
         shell: pwsh
       
       - name: Determine release flags
+        if: ${{ always() }}
         id: release-flags
         run: |
           if ('${{ github.ref_name }}' -eq 'main') {
